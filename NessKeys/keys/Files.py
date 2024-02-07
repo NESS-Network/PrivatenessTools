@@ -1,7 +1,7 @@
 from NessKeys.interfaces.NessKey import NessKey
-from NessKeys.keys.NessFile import NessFile
-from NessKeys.exceptions.LeafBuildException import LeafBuildException
-from NessKeys.exceptions.FileNotExist import FileNotExist
+from ..JsonChecker.Checker import JsonChecker
+from ..JsonChecker.DeepChecker import DeepChecker
+from ..JsonChecker.exceptions.LeafBuildException import LeafBuildException
 
 import math
 import random
@@ -10,21 +10,27 @@ import os
 
 class Files(NessKey):
 
-    def __init__(self, keydata: dict):
-        
-        if not("filedata" in keydata):
-            raise LeafBuildException("No filedata parameter", "/filedata")
-            
-        filedata = keydata["filedata"]
+    def load(self, keydata: dict):
+        map = {
+            "filedata": {
+                "vendor": "Privateness",
+                "type": "service",
+                "for": "files"
+            },
+            "files": dict
+        }
 
-        if not ("vendor" in filedata and "type" in filedata and "for" in filedata):
-            raise LeafBuildException("No vendor|type|for in filedata parameter", "/filedata/*")
+        JsonChecker.check('Files', keydata, map)
 
-        if not (filedata["vendor"] == "Privateness" and filedata["type"] == "service" and filedata["for"] == "files"):
-            raise LeafBuildException("Wrong filetype", "/filedata/*")
+        map = {
+            'filename': str,
+            'filepath': str,
+            'size': int,
+            'status': [str, 1],
+            'directory': int
+        }
 
-        if not (isinstance(keydata["files"], dict)):
-            raise LeafBuildException("Wrong files type", "/files")
+        DeepChecker.check('Files (files list)', keydata, map, 2)
 
         self.__files = keydata["files"]
 
@@ -100,7 +106,7 @@ class Files(NessKey):
             random.choice(alphabet_1) + \
             random.choice(alphabet_2) + '.' + str(rand)
 
-    def addFile(self, node_name: str, filepath: str, cipher: str, cipher_type: str, status: chr, directory: int, shadowname: str = '') -> str:
+    def addFile(self, node_name: str, filepath: str, status: chr, directory: int, shadowname: str = '') -> str:
         if shadowname == '':
             shadowname = self.__gen_shadowname()
 
@@ -109,9 +115,7 @@ class Files(NessKey):
         self.__files[node_name][shadowname] = {
             'filename': filename,
             'filepath': filepath,
-            'cipher': cipher,
             'size': os.path.getsize(filepath),
-            'cipher-type': cipher_type,
             'status': status,
             'directory': directory
         }

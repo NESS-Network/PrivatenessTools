@@ -1,32 +1,24 @@
-from NessKeys.interfaces.NessKey import NessKey
-from NessKeys.exceptions.LeafBuildException import LeafBuildException
+from ..JsonChecker.Checker import JsonChecker
+from ..JsonChecker.exceptions.LeafBuildException import LeafBuildException
+from ..interfaces.NessKey import NessKey
+import json
 
 class BlockchainRPC(NessKey):
 
-    def __init__(self, keydata: dict):
-        
-        if not("filedata" in keydata):
-            raise LeafBuildException("No filedata parameter", "/filedata")
-            
-        filedata = keydata["filedata"]
+    def load(self, keydata: dict):
+        map = {
+            "filedata": {
+                "vendor": "Privateness",
+                "type": "config",
+                "for": "blockchain"
+            },
+            "rpc-host": str,
+            "rpc-port": int,
+            "rpc-user": str,
+            "rpc-password": str,
+        }
 
-        if not ("vendor" in filedata and "type" in filedata and "for" in filedata):
-            raise LeafBuildException("No vendor|type|for in filedata parameter", "/filedata/*")
-
-        if not (filedata["vendor"] == "Privateness" and filedata["type"] == "config" and filedata["for"] == "blockchain"):
-            raise LeafBuildException("Wrong filetype", "/filedata/*")
-
-        if not("rpc-host" in keydata):
-            raise LeafBuildException("No rpc-host parameter", "/")
-
-        if not("rpc-port" in keydata):
-            raise LeafBuildException("No rpc-port parameter", "/")
-
-        if not("rpc-user" in keydata):
-            raise LeafBuildException("No rpc-user parameter", "/")
-
-        if not("rpc-password" in keydata):
-            raise LeafBuildException("No rpc-password parameter", "/")
+        JsonChecker.check('Backup key check', keydata, map)
 
         self.__host = keydata["rpc-host"]
         self.__port = keydata["rpc-port"]
@@ -47,6 +39,9 @@ class BlockchainRPC(NessKey):
         }
 
         return appdata
+
+    def serialize(self) -> str:
+        return json.dumps(self.compile())
 
     def worm(self) -> str:
         return ""

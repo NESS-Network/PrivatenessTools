@@ -135,3 +135,8 @@ dmypy.json
 
 #Encrypted files
 /encrypted
+
+
+#Test suite
+/NessKeys/tests/sample.enc
+/NessKeys/tests/smpl.jpg

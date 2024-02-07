@@ -1,33 +1,29 @@
 from NessKeys.interfaces.NessKey import NessKey
-from NessKeys.keys.NessFile import NessFile
-from NessKeys.exceptions.LeafBuildException import LeafBuildException
+from ..JsonChecker.Checker import JsonChecker
+from ..JsonChecker.DeepChecker import DeepChecker
+from ..JsonChecker.exceptions.LeafBuildException import LeafBuildException
 
 class Directories(NessKey):
 
-    def __init__(self, keydata: dict):
-        
-        if not("filedata" in keydata):
-            raise LeafBuildException("No filedata parameter", "/filedata")
-            
-        filedata = keydata["filedata"]
+    def load(self, keydata: dict):
+        map = {
+            "filedata": {
+                "vendor": "Privateness",
+                "type": "service",
+                "for": "files-directories"
+            },
+            "directories": dict,
+            "current": dict
+        }
 
-        if not ("vendor" in filedata and "type" in filedata and "for" in filedata):
-            raise LeafBuildException("No vendor|type|for in filedata parameter", "/filedata/*")
+        JsonChecker.check('Directories', keydata, map)
 
-        if not (filedata["vendor"] == "Privateness" and filedata["type"] == "service" and filedata["for"] == "files-directories"):
-            raise LeafBuildException("Wrong filetype", "/filedata/*")
+        map = {
+            'name': str,
+            'parent_id': int
+        }
 
-        if not "directories" in keydata:
-            raise LeafBuildException("No directories", "/directories")
-
-        if not "current" in keydata:
-            raise LeafBuildException("No current", "/current")
-            
-        if not(isinstance(keydata["directories"], dict)):
-            raise LeafBuildException("Wrong directories type, must be 'dict'", "/directories")
-
-        if not(isinstance(keydata["current"], dict)):
-            raise LeafBuildException("Wrong current type, must be 'dict'", "/current")
+        DeepChecker.check('Directories (directories list)', keydata, map, 3)
 
         self.__directories = keydata["directories"]
         self.__current = keydata["current"]

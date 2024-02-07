@@ -1,27 +1,37 @@
-from NessKeys.interfaces.NessKey import NessKey
-from NessKeys.exceptions.LeafBuildException import LeafBuildException
-from NessKeys.exceptions.MyNodesFileDoesNotExist import MyNodesFileDoesNotExist
-from NessKeys.exceptions.CurrentNodeNotSet import CurrentNodeNotSet
+from ..JsonChecker.Checker import JsonChecker
+from ..JsonChecker.DeepChecker import DeepChecker
+from ..JsonChecker.KeyChecker import KeyChecker
+from ..JsonChecker.exceptions.LeafBuildException import LeafBuildException
+from ..interfaces.NessKey import NessKey
 
 class Nodes(NessKey):
 
-    def __init__(self, keydata: dict):
+    def load(self, keydata: dict):
+        map = {
+            "filedata": {
+                "vendor": "Privateness",
+                "type": "data",
+                "for": "nodes-list"
+            },
+            "nodes": list
+        }
         
-        if not("filedata" in keydata):
-            raise LeafBuildException("No filedata parameter", "/filedata")
-            
-        filedata = keydata["filedata"]
+        JsonChecker.check('Nodes key check', keydata, map)
 
-        if not ("vendor" in filedata and "type" in filedata and "for" in filedata):
-            raise LeafBuildException("No vendor|type|for in filedata parameter", "/filedata/*")
+        map = {
+            "url": str,
+            "public": str,
+            "verify": str,
+            "nonce": str,
+            "master": str,
+            "tariff": float,
+            "tags": list
+        }
 
-        if not (filedata["vendor"] == "Privateness" and filedata["type"] == "data" and filedata["for"] == "nodes-list"):
-            raise LeafBuildException("Wrong filetype", "/filedata/*")
-
-        if not(type(keydata["nodes"]) == dict):
-            raise LeafBuildException("Wrong my-nodes type", "/nodes")
+        DeepChecker.check('Nodes key check (nodes list)', keydata['nodes'], map, 1)
 
         self.__nodes = keydata["nodes"]
+
 
     def compile(self) -> dict:
         appdata = {
@@ -56,8 +66,9 @@ class Nodes(NessKey):
     def setNodes(self, nodes: dict):
         self.__nodes = nodes
 
-    def findNode(self, node_name: str) -> dict:
-        if node_name in self.__nodes:
-            return self.__nodes[node_name]
-        else:
-            return False
+    def findNode(self, url: str) -> dict:
+        for i in self.__nodes:
+            if self.__nodes[i]['url'] == url:
+                return self.__nodes[i]
+
+        return False

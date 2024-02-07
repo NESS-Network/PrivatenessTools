@@ -1,32 +1,30 @@
-from NessKeys.interfaces.NessKey import NessKey
-from NessKeys.exceptions.LeafBuildException import LeafBuildException
+from ..JsonChecker.Checker import JsonChecker
+from ..JsonChecker.exceptions.LeafBuildException import LeafBuildException
+from ..interfaces.NessKey import NessKey
 import urllib.parse
 
 class Node(NessKey):
 
-    def __init__(self, keydata: dict):
+    def load(self, keydata: dict):
+        map = {
+            "filedata": {
+                "vendor": "Privateness",
+                "type": "key",
+                "for": "node"
+            },
+            "keys": {
+                "private": str,
+                "public": str,
+                "verify": str
+            },
+            "url": str,
+            "nonce": str,
+            "master-user": str,
+            "tags": list,
+            "tariff": float,
+        }
 
-        if not("filedata" in keydata):
-            raise LeafBuildException("No filedata parameter", "/filedata")
-            
-        filedata = keydata["filedata"]
-
-        if not ("vendor" in filedata and "type" in filedata and "for" in filedata):
-            raise LeafBuildException("No vendor|type|for in filedata parameter", "/filedata/*")
-
-        if not (filedata["vendor"] == "Privateness" and filedata["type"] == "key" and filedata["for"] == "node"):
-            raise LeafBuildException("Wrong filetype", "/filedata/*")
-
-        if not ("keys" in keydata and "url" in keydata and "nonce" in keydata and "master-user" in keydata and "tags" in keydata and "tariff" in keydata):
-            raise LeafBuildException("Not all parameters in place", "/*")
-
-        keys = keydata["keys"]
-
-        if not ("private" in keys and "public" in keys and "verify" in keys):
-            raise LeafBuildException("Not all keys in place", "/keys/*")
-
-        if not(isinstance(keydata["tariff"], int)):
-            raise LeafBuildException("Wrong tariff type", "/tariff")
+        JsonChecker.check('Node key check', keydata, map)
 
         self.__private_key = keydata["keys"]["private"]
         self.__public_key = keydata["keys"]["public"]
@@ -34,7 +32,7 @@ class Node(NessKey):
         self.__url = keydata["url"]
         self.__nonce = keydata["nonce"]
         self.__master_user = keydata["master-user"]
-        self.__tags = keydata["tags"].split(',')
+        self.__tags = keydata["tags"]
         self.__tariff = keydata["tariff"]
 
     def compile(self) -> dict:
@@ -52,7 +50,7 @@ class Node(NessKey):
             "url": self.__url,
             "nonce": self.__nonce,
             "master-user": self.__master_user,
-            "tags": ",".join(self.__tags),
+            "tags": self.__tags,
             "tariff": self.__tariff,
         }
 
@@ -98,7 +96,7 @@ class Node(NessKey):
         worm = "<worm>"+linesep+\
             tab + "<node type=\"ness\" url=\"" + nodedata["url"] + "\" nonce=\"" + nodedata["nonce"] + "\"   " + \
             " verify=\"" + nodedata['keys']["verify"] + "\" public=\"" + nodedata['keys']["public"] + "\" master-user=\"" + \
-            nodedata["master-user"] + "\" tariff=\"" + str(nodedata["tariff"]) + "\" tags=\"" + nodedata["tags"] + "\">" + linesep + \
+            nodedata["master-user"] + "\" tariff=\"" + str(nodedata["tariff"]) + "\" tags=\"" + ','.join(nodedata["tags"]) + "\">" + linesep + \
             tab2 + "<!-- Here tags may be different for each type of node or each node -->" + linesep + \
             tab + "</node>" + linesep + \
             "</worm>"

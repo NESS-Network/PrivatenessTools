@@ -1,29 +1,26 @@
-from NessKeys.interfaces.NessKey import NessKey
-from NessKeys.exceptions.LeafBuildException import LeafBuildException
+from ..JsonChecker.Checker import JsonChecker
+from ..JsonChecker.exceptions.LeafBuildException import LeafBuildException
+from ..interfaces.NessKey import NessKey
+import json
 import urllib.parse
 
 class Faucet(NessKey):
 
-    def __init__(self, keydata: dict):
+    def load(self, keydata: dict):
+        map = {
+            "filedata": {
+                "vendor": "Privateness",
+                "type": "key",
+                "for": "faucet"
+            },
+            "keys": {
+                "private": str,
+                "verify": str
+            },
+            "url": str
+        }
 
-        if not("filedata" in keydata):
-            raise LeafBuildException("No filedata parameter", "/filedata")
-            
-        filedata = keydata["filedata"]
-
-        if not ("vendor" in filedata and "type" in filedata and "for" in filedata):
-            raise LeafBuildException("No vendor|type|for in filedata parameter", "/filedata/*")
-
-        if not (filedata["vendor"] == "Privateness" and filedata["type"] == "key" and filedata["for"] == "faucet"):
-            raise LeafBuildException("Wrong filetype", "/filedata/*")
-
-        if not ("keys" in keydata and "url" in keydata):
-            raise LeafBuildException("Not all parameters in place", "/*")
-
-        keys = keydata["keys"]
-
-        if not ("private" in keys and "verify" in keys):
-            raise LeafBuildException("Not all keys in place", "/keys/*")
+        JsonChecker.check('Faucet key check', keydata, map)
 
         self.__private_key = keydata["keys"]["private"]
         self.__verify_key = keydata["keys"]["verify"]
@@ -46,6 +43,9 @@ class Faucet(NessKey):
         nodedata["worm"] = self.__wrm(nodedata)
 
         return nodedata
+
+    def serialize(self) -> str:
+        return json.dumps(self.compile())
 
     def worm(self) -> str:
         nodedata = {

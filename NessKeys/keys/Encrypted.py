@@ -1,40 +1,28 @@
 from NessKeys.interfaces.NessKey import NessKey
-from NessKeys.exceptions.LeafBuildException import LeafBuildException
+from ..JsonChecker.Checker import JsonChecker
+from ..JsonChecker.exceptions.LeafBuildException import LeafBuildException
 
 class Encrypted(NessKey):
 
-    def __init__(self, keydata: dict):
-        if not("filedata" in keydata):
-            raise LeafBuildException("No filedata parameter", "/filedata")
-            
-        filedata = keydata["filedata"]
+    def load(self, keydata: dict):
+        map = {
+            "filedata": {
+                "vendor": "Privateness",
+                "type": "encrypted-keys",
+                "for": str,
+                "cipher": str
+            },
+            "keys": list,
+            "crc": list
+        }
 
-        if not ("vendor" in filedata and "type" in filedata and "cipher" in filedata):
-            raise LeafBuildException("No vendor|type|for in filedata parameter", "/filedata/*")
-            
-        self.__for = filedata["for"]
+        JsonChecker.check('Directories', keydata, map)
 
-        if not (filedata["vendor"] == "Privateness" and filedata["type"] == "encrypted-keys"):
-            raise LeafBuildException("Wrong filetype", "/filedata/*")
 
-        if not("cipher" in filedata):
-            raise LeafBuildException("No cipher parameter", "/cipher")
-
-        if not("keys" in keydata):
-            raise LeafBuildException("No keys parameter", "/keys")
-
-        if not("crc" in keydata):
-            raise LeafBuildException("No crc parameter", "/crc")
-
-        self.__cipher = filedata["cipher"]
+        self.__for = keydata["filedata"]["for"]
+        self.__cipher = keydata["filedata"]["cipher"]
         self.__keys = keydata["keys"]
         self.__crc = keydata["crc"]
-
-        if not(type(self.__keys) == list):
-            raise LeafBuildException("Wrong keys type", "/keys")
-
-        if not(type(self.__crc) == list):
-            raise LeafBuildException("Wrong crc type", "/crc")
 
     def compile(self) -> dict:
         appdata = {
