@@ -134,8 +134,8 @@ dmypy.json
 *.key.json
 
 #Encrypted files
-/_enc/*
-/_dec/*
+_enc/*.*
+_dec/*.*
 
 # json keys
 *.json
