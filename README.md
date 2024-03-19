@@ -218,7 +218,7 @@ On client all keys are stored in `~/privateness-keys/*.json` directory, director
 
 ### upload.py
 ```
-*** File upload
+*** File upload and encrypt with resume support 
 ### USAGE:
 #### Upload file on service node
  python upload.py <path to your file to upload>
@@ -231,10 +231,22 @@ On client all keys are stored in `~/privateness-keys/*.json` directory, director
 ```
 ### download.py
 ```
-*** File download
+*** File download and decrypt with resume support 
 ### USAGE:
 #### Download file from service node
  python download.py <file_shadowname> [path]
+```
+### jobs.py
+```
+*** File jobs
+### USAGE:
+#### List jobs
+ python jobs.py ls
+ python jobs.py list
+#### Pause job
+ python jobs.py pause <file shadowname with current running job>
+#### Resume job
+ python jobs.py run <file shadowname with current paused job>
 ```
 ### fileinfo.py
 ```
