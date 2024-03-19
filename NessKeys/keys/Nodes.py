@@ -24,7 +24,7 @@ class Nodes(NessKey):
             "verify": str,
             "nonce": str,
             "master": str,
-            "tariff": float,
+            "tariff": int,
             "tags": list
         }
 
@@ -34,7 +34,7 @@ class Nodes(NessKey):
 
 
     def compile(self) -> dict:
-        appdata = {
+        keydata = {
             "filedata": {
                 "vendor": "Privateness",
                 "type": "data",
@@ -42,8 +42,8 @@ class Nodes(NessKey):
             },
             "nodes": self.__nodes
         }
-
-        return appdata
+        
+        return keydata
 
     def worm(self) -> str:
         return ""
@@ -55,7 +55,7 @@ class Nodes(NessKey):
         return "Privateness Nodes storage file"
 
     def filename():
-        return "nodes.json"
+        return "nodes.key.json"
 
     def getFilename(self):
         return Nodes.filename()
@@ -63,12 +63,12 @@ class Nodes(NessKey):
     def getNodes(self) -> dict:
         return self.__nodes
 
-    def setNodes(self, nodes: dict):
+    def setNodes(self, nodes: list):
         self.__nodes = nodes
 
     def findNode(self, url: str) -> dict:
-        for i in self.__nodes:
-            if self.__nodes[i]['url'] == url:
-                return self.__nodes[i]
+        for node in self.__nodes:
+            if node['url'] == url:
+                return node
 
         return False

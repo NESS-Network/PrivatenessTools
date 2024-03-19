@@ -2,14 +2,24 @@ import os
 import sys
 
 from framework.Container import Container
+from framework.GLOBAL import GLOBAL
+from framework.ARGS import ARGS
 
 from NessKeys.exceptions.MyNodesFileDoesNotExist import MyNodesFileDoesNotExist
 from NessKeys.exceptions.NodesFileDoesNotExist import NodesFileDoesNotExist
 from NessKeys.exceptions.NodeNotFound import NodeNotFound
+from NessKeys.exceptions.FileNotExist import FileNotExist
 from NessKeys.exceptions.NodeError import NodeError
 from NessKeys.exceptions.AuthError import AuthError
 
 import requests
+import signal
+
+def exit_fn (*args):
+    GLOBAL.halt = True
+
+signal.signal(signal.SIGINT, exit_fn)
+signal.signal(signal.SIGTERM, exit_fn)
 
 class Noder:
 
@@ -21,25 +31,21 @@ class Noder:
 
     def process(self):
 
-        if len(sys.argv) == 2 and (sys.argv[1].lower() == 'help' or sys.argv[1].lower() == '-h'):
+        if ARGS.args(['help']) or ARGS.args(['-h']):
             self.__manual()
 
-        elif len(sys.argv) == 2:
+        elif ARGS.args([str]) or ARGS.args([str, str]):
             shadowname = sys.argv[1]
 
-            km = Container.KeyManager()
-            ns = Container.NodeService()
-            fs = Container.FilesService()
+            if ARGS.args([str, str]):
+                path = sys.argv[2]
+            else:
+                path = ""
+
+            fm = Container.FileManager()
             
             try:
-                if ns.joined(km.getCurrentNodeName()):
-                    km.initFilesAndDirectories()
-
-                    km.setFileStatus(shadowname, 'w')
-                    fs.download(shadowname)
-                    km.setFileStatus(shadowname, 'd')
-                    fs.decrypt(shadowname)
-                    km.setFileStatus(shadowname, 'n')
+                fm.download(shadowname, path)
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
@@ -49,42 +55,12 @@ class Noder:
                 print("RUN python nodes-update.py node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
+            except FileNotExist as e:
+                print("File {} not found".format(e.filename))
             except NodeError as e:
                 print("Error on remote node: " + e.error)
             except AuthError as e:
                 print("Responce verification error")
-
-        elif len(sys.argv) == 3:
-            shadowname = sys.argv[1]
-            path = sys.argv[2]
-
-            km = Container.KeyManager()
-            ns = Container.NodeService()
-            fs = Container.FilesService()
-            
-            try:
-                if ns.joined(km.getCurrentNodeName()):
-                    km.initFilesAndDirectories()
-
-                    km.setFileStatus(shadowname, 'w')
-                    fs.download(shadowname, path)
-                    km.setFileStatus(shadowname, 'd')
-                    fs.decrypt(shadowname, path)
-                    km.setFileStatus(shadowname, 'n')
-
-            except MyNodesFileDoesNotExist as e:
-                print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
-            except NodesFileDoesNotExist as e:
-                print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
-            except NodeNotFound as e:
-                print("NODE '{}' is not in nodes list".format(e.node))
-            except NodeError as e:
-                print("Error on remote node: " + e.error)
-            except AuthError as e:
-                print("Responce verification error")
-
         else:
             self.__manual()
 

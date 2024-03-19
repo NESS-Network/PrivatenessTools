@@ -15,8 +15,7 @@ import lxml.etree as etree
 import uuid
 import NessKeys.Prng as prng
 from framework.Container import Container
-
-from NessKeys.exceptions.KeyIndexException import KeyIndexException
+from framework.ARGS import ARGS
 
 class Keygen:
 
@@ -35,39 +34,33 @@ class Keygen:
         print("  Works on ed25519 for keypairs")
         print("  Adjustable entropy when generating private keys")
         print("### USAGE:")
-        print("#### Generate user")
-        print("  user <username> <Keypair count> \"coma,separated,tags\" <Entropy level>")
-        print("  Example: $ python keygen.py user user1 10 \"Hello,World\" 5")
-        print("#### Generate node")
+        print("#### Generate user Key")
+        print("  user <username> \"coma,separated,tags\" <Entropy level>")
+        print("  Example: $ python keygen.py user user1 \"Hello,World\" 5")
+        print("#### Generate node Key")
         print("  node <Node name or URL> <Tariff> master-user-name \"coma,separated,tags\"  <Entropy level>")
         print("  Example: $ python keygen.py node http://my-node.net 111 master \"Hello,World\" 5")
-        print("#### Change user's keypair")
-        print("  change <User Key File> <new keypair index>")
-        print("  Example: $ python keygen.py change user.key.json 2")
         print("#### Generate Faucet Key")
         print("  faucet <Faucet URL> <Entropy level>")
         print("  Example: $ python keygen.py faucet http://www.faucet.net 5")
+        print("#### Generate Backup Key")
+        print("  backup <Entropy level>")
+        print("  Example: $ python keygen.py backup 5")
         print("#### Generate seed")
         print("  seed <length> <Entropy level>")
-        print("  Example: $ python keygen.py seed 32 5")
+        print("  Example: $ python keygen.py seed 32 5")        
         print("#### Show this manual")
         print("  $ python keygen.py help")
         print("  $ python keygen.py -h")
 
     def process(self):
-        if len(sys.argv) == 6 and sys.argv[1].lower() == 'user':
+        if ARGS.args(['user', str, str, str]):
             username = sys.argv[2]
 
-            if self.__is_integer(sys.argv[3]):
-                keypair_count = int(sys.argv[3])
-            else:
-                print("<Keypair count> must be integer")
-                return False
+            tags = sys.argv[3]
 
-            tags = sys.argv[4]
-
-            if self.__is_integer(sys.argv[5]):
-                entropy = int(sys.argv[5])
+            if self.__is_integer(ARGS.arg(4)):
+                entropy = int(ARGS.arg(4))
 
                 if entropy < 1:
                     entropy = 1
@@ -77,9 +70,9 @@ class Keygen:
 
             manager = Container.KeyManager()
 
-            return manager.createUserKey(username, keypair_count, tags, entropy)
+            return manager.createUsersKey(username, tags, entropy)
 
-        elif len(sys.argv) == 7 and sys.argv[1].lower() == 'node':
+        elif ARGS.args(['node', str, str, str, str, str]):
             url = sys.argv[2]
 
             if self.__is_integer(sys.argv[3]):
@@ -104,7 +97,7 @@ class Keygen:
 
             return manager.createNodeKey(url, tariff, master_user, tags, entropy)
 
-        elif len(sys.argv) == 4 and sys.argv[1].lower() == 'faucet':
+        elif ARGS.args(['faucet', str, str]):
             url = sys.argv[2]
 
             if self.__is_integer(sys.argv[3]):
@@ -120,22 +113,22 @@ class Keygen:
 
             return manager.createFaucetkey(url, entropy)
 
-        elif len(sys.argv) == 4 and sys.argv[1].lower() == 'change':
-            key_filename = sys.argv[2]
+        elif ARGS.args(['backup', str]):
+            if self.__is_integer(sys.argv[2]):
+                entropy = int(sys.argv[2])
 
-            if self.__is_integer(sys.argv[3]):
-                key_index = int(sys.argv[3])
+                if entropy < 1:
+                    entropy = 1
             else:
-                print("<new keypair index> must be integer")
+                print("<Entropy level> must be integer")
                 return False
 
             manager = Container.KeyManager()
 
-            try:
-                manager.changeUserKeypair(key_filename, key_index)
-            except KeyIndexException as e:
-                print("Index %i out of range (from 0 to %i)" % (e.index, e.max))
-                return False
+            bkey = manager.createBackupKey('node', '', entropy)
+
+            print("Write down a seed to paper or password manager:")
+            print(bkey.getSeed())
 
             return True
 

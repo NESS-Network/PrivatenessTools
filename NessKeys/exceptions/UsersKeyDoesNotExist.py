@@ -1,0 +1,2 @@
+class UsersKeyDoesNotExist(Exception):
+    pass

@@ -87,6 +87,13 @@ class UhePrng:
 		self.seed = s
 		return s
 
+	def numbers(self, len: int, count: int):
+		n = []
+		for i in range(0, count):
+			n.append(self.random(len))
+
+		return n
+
 	'''
 		this PRIVATE "hash" function is used to evolve the generator's internal
 		entropy state. It is also called by the EXPORTED addEntropy() function
@@ -163,8 +170,16 @@ class UhePrng:
 
 		# with the PRNG initialized into a known starting state by the provided SeedKey
 		# we now pull the requested number of pseudo-random numbers from our the generator
+		file = open('/dev/random', 'rb')
+
 		for i in range(0, count - 1):
+			rand = file.read(1024)
+
+			self.add_entropy(rand)
+
 			result.append(self.random(rng))
+
+		file.close()
 
 		return result
 

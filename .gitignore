@@ -134,8 +134,11 @@ dmypy.json
 *.key.json
 
 #Encrypted files
-/encrypted
+/_enc/*
+/_dec/*
 
+# json keys
+*.json
 
 #Test suite
 /NessKeys/tests/sample.enc

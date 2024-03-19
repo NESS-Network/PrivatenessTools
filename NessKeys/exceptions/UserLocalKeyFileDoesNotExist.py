@@ -1,2 +1,0 @@
-class UserLocalKeyFileDoesNotExist(Exception):
-    pass

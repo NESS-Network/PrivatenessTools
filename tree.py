@@ -25,36 +25,31 @@ class Lister:
 
         if len(sys.argv) == 1:
             km = Container.KeyManager()
-            ns = Container.NodeService()
-            
+            fm = Container.FileManager()
             try:
-                if ns.joined(km.getCurrentNodeName()):
-                    km.initFilesAndDirectories()
-                    current_dir = km.getCurrentDir()
+                tree = fm.tree()
+                current_dir = km.getCurrentDir()
 
-                    def print_dir(dirs : dict, level: int):
-                        for id in dirs:
-                            files = km.getFiles(int(id))
-                            name = id + ': [' + dirs[id]['name'] + ']'
+                def print_dir(dirs : dict, level: int):
+                    for id in dirs:
+                        files = km.getFiles(int(id))
+                        name = id + ': [' + dirs[id]['name'] + ']'
 
-                            if len(files) > 0:
-                                name += '({})'.format(len(files))
+                        if len(files) > 0:
+                            name += '({})'.format(len(files))
 
-                            if int(id) == current_dir:
-                                name = '==> ' + name + ' <=='
-                                line = " " * level * 4 + name
-                            else:
-                                line = " " * (level + 1) * 4 + name
+                        if int(id) == current_dir:
+                            name = '==> ' + name + ' <=='
+                            line = " " * level * 4 + name
+                        else:
+                            line = " " * (level + 1) * 4 + name
 
-                            print(line)
+                        print(line)
 
-                            if 'children' in dirs[id]:
-                                print_dir(dirs[id]['children'], level + 1)
+                        if 'children' in dirs[id]:
+                            print_dir(dirs[id]['children'], level + 1)
 
-                    tree = km.tree()
-                    print_dir(tree, 0)
-                else:
-                    print("Current node is not set or not joined")
+                print_dir(tree, 0)
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
@@ -71,39 +66,35 @@ class Lister:
 
         elif len(sys.argv) == 2 and sys.argv[1].lower() == 'files':
             km = Container.KeyManager()
-            ns = Container.NodeService()
+            fm = Container.FileManager()
             
             try:
-                if ns.joined(km.getCurrentNodeName()):
-                    km.initFilesAndDirectories()
-                    current_dir = km.getCurrentDir()
+                tree = fm.tree()
+                current_dir = km.getCurrentDir()
 
-                    def print_dir(dirs : dict, level: int):
-                        for id in dirs:
-                            files = km.getFiles(int(id))
-                            name = id + ': [' + dirs[id]['name'] + ']'
+                def print_dir(dirs : dict, level: int):
+                    for id in dirs:
+                        files = km.getFiles(int(id))
+                        name = id + ': [' + dirs[id]['name'] + ']'
 
-                            if int(id) == current_dir:
-                                name = '==> ' + name + ' <=='
-                                line = " " * level * 4 + name
-                            else:
-                                line = " " * (level + 1) * 4 + name
+                        if int(id) == current_dir:
+                            name = '==> ' + name + ' <=='
+                            line = " " * level * 4 + name
+                        else:
+                            line = " " * (level + 1) * 4 + name
 
-                            print(line)
+                        print(line)
 
-                            if 'children' in dirs[id]:
-                                print_dir(dirs[id]['children'], level + 1)
+                        if 'children' in dirs[id]:
+                            print_dir(dirs[id]['children'], level + 1)
 
-                            if len(files) > 0:
-                                for  sh in files:
-                                    fline = "{}: {}".format(sh, files[sh]['filename'])
-                                    fline = " " * (level + 2) * 4 + fline
-                                    print(fline)
+                        if len(files) > 0:
+                            for  sh in files:
+                                fline = "{}: {}".format(sh, files[sh]['filename'])
+                                fline = " " * (level + 2) * 4 + fline
+                                print(fline)
 
-                    tree = km.tree()
-                    print_dir(tree, 0)
-                else:
-                    print("Current node is not set or not joined")
+                print_dir(tree, 0)
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")

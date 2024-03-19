@@ -11,6 +11,7 @@ from ..keys.MyNodes import MyNodes
 from ..keys.Files import Files
 from ..keys.Directories import Directories
 from ..keys.Encrypted import Encrypted
+from ..keys.Settings import Settings
 import json
 import random
 import uuid
@@ -38,8 +39,13 @@ keydata = {
         "type": "backup",
         "for": "backup"
     },
+    "type": 'node',
+    "address": 'address',
+    "cipher": 'aes',
     "seed": rand_str(),
-    "key": rand_text()
+    "key": rand_text(),
+    "files_id": rand_str(),
+    "dirs_id": rand_str()
 }
 
 keystr = json.dumps(keydata)
@@ -191,7 +197,7 @@ keydata = {
             "verify": rand_str(),
             "nonce": rand_str(),
             "master": rand_str(),
-            "tariff": rand_float(),
+            "tariff": rand_int(),
             "tags": [rand_str(),rand_str(),rand_str()]
         },
         {
@@ -200,7 +206,7 @@ keydata = {
             "verify": rand_str(),
             "nonce": rand_str(),
             "master": rand_str(),
-            "tariff": rand_float(),
+            "tariff": rand_int(),
             "tags": [rand_str(),rand_str(),rand_str()]
         },
         {
@@ -209,7 +215,7 @@ keydata = {
             "verify": rand_str(),
             "nonce": rand_str(),
             "master": rand_str(),
-            "tariff": rand_float(),
+            "tariff": rand_int(),
             "tags": [rand_str(),rand_str(),rand_str()]
         },
         {
@@ -218,7 +224,7 @@ keydata = {
             "verify": rand_str(),
             "nonce": rand_str(),
             "master": rand_str(),
-            "tariff": rand_float(),
+            "tariff": rand_int(),
             "tags": [rand_str(),rand_str(),rand_str()]
         }
     ]
@@ -329,3 +335,22 @@ keydump = key.serialize()
 keystr = json.dumps(keydata)
 
 print('Encrypted', keystr == keydump)
+
+keydata = {
+    "filedata": {
+        "vendor": "Privateness",
+        "type": "settings",
+        "for": "settings"
+    },
+            "entrophy": rand_int(),
+            "cipher": rand_str(),
+}
+
+key = Settings()
+key.load(keydata)
+kd = key.compile()
+keydump = key.serialize()
+keystr = json.dumps(keydata)
+
+print('Settings', keystr == keydump)
+

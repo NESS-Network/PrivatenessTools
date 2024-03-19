@@ -9,64 +9,93 @@ from NessKeys.exceptions.NodeNotFound import NodeNotFound
 from NessKeys.exceptions.NodeError import NodeError
 from NessKeys.exceptions.AuthError import AuthError
 
-import requests
 from prettytable import PrettyTable
 import humanize
+from framework.ARGS import ARGS
 
 class Noder:
 
     def __manual(self):
-        print("*** User manipulation")
+        print("*** User list and user selection")
         print("### USAGE:")
-        print("#### Show information about current user (userinfo, balance, etc)")
-        print(" python user.py")
+        print("#### Show userlist")
+        print(" python user.py list|ls")
+        print("#### Select user")
+        print(" python user.py sel|sl username")
+        print("#### Check if current user is registered in blockchain")
+        print(" python user.py check|chk|ch")
+        print("#### Show current user nvs")
+        print(" python user.py nvs")
+        print("#### Show current user <WORM>")
+        print(" python user.py worm")
+        print("#### Edit users file")
+        print(" python user.py edit [editor=nano]")
+
+    def print_userlist(self):
+        manager = Container.KeyManager()
+        users_key = manager.showUsersKey()
+
+        t = PrettyTable(['Username'])
+        t.align = 'c'
+        
+        if users_key != False:
+            for user in users_key['users']:
+                if user == users_key['current']:
+                    username = '==> ' + user + ' <=='
+                else:
+                    username = user
+
+                t.add_row([username])
+
+        t.align = 'c'
+        print(t)
 
     def process(self):
+        if ARGS.args(['list']) or ARGS.args(['ls']):
+            self.print_userlist()
 
-        if len(sys.argv) == 1:
-            km = Container.KeyManager()
-            ns = Container.NodeService()
-            
-            try:
-                print(" # Current node: " + km.getCurrentNodeName())
-                userinfo = ns.userinfo()
+        elif ARGS.args(['edit']):
+            os.system("nano ~/.privateness-keys/users.key.json") 
 
-                t = PrettyTable(['Param', 'value'])
-                t.align = 'l'
+        elif ARGS.args(['edit', str]):
+            os.system(ARGS.arg(2) + " ~/.privateness-keys/users.key.json") 
 
-                t.add_row(["Payment address", userinfo['addr']])
-                t.add_row(["User counter", userinfo['counter']])
-                t.add_row(["User shadowname", userinfo['shadowname']])
-                t.add_row(["Joined to node", userinfo['joined']])
-                t.add_row(["Active on node", userinfo['is_active']])
+        elif ARGS.args(['nvs']):
+            manager = Container.KeyManager()
+            users_key = manager.showUsersKey()
+            print(users_key['nvs'])
 
-                print(t)
+        elif ARGS.args(['worm']):
+            manager = Container.KeyManager()
+            users_key = manager.showUsersKey()
+            print(users_key['worm'])
 
-                print(" * Balance:")
+        elif ARGS.args(['sel', str]) or ARGS.args(['sl', str]):
+            manager = Container.KeyManager()
+            manager.changeCurrentUser(sys.argv[2])
+            self.print_userlist()
 
-                t = PrettyTable(['Param', 'value'])
-                t.align = 'l'
-                t.add_row(["Coins", userinfo['balance']['coins']])
-                t.add_row(["Coin-hours (total)", userinfo['balance']['hours']])
-                t.add_row(["Coin-hours (fee)", userinfo['balance']['fee']])
-                t.add_row(["Coin-hours (available)", userinfo['balance']['available']])
+        elif ARGS.args(['check']) or ARGS.args(['chk']) or ARGS.args(['ch']):
+            manager = Container.KeyManager()
+            username = manager.getCurrentUser()
+            node = manager.getRandomNode()
 
-                print(t)
+            if node:
+                node_url = node['url']
+                ns = Container.NodeService()
 
-            except MyNodesFileDoesNotExist as e:
-                print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
-            except NodesFileDoesNotExist as e:
+                if ns.exist(node_url, username):
+                    print ("User '{}' REGISTERED in blockchain".format(username))
+                else:
+                    print ("User '{}' is NOT registered in blockchain".format(username))
+            else:
                 print("NODES LIST file not found.")
                 print("RUN python nodes-update.py node node-url")
-            except NodeNotFound as e:
-                print("NODE '{}' is not in nodes list".format(e.node))
-            except NodeError as e:
-                print("Error on remote node ")
-            except AuthError as e:
-                print("Responce verification error")
 
         elif len(sys.argv) == 2 and (sys.argv[1].lower() == 'help' or sys.argv[1].lower() == '-h'):
+            self.__manual()
+
+        else:
             self.__manual()
 
 upd = Noder()

@@ -8,6 +8,7 @@ from NessKeys.exceptions.NodesFileDoesNotExist import NodesFileDoesNotExist
 from NessKeys.exceptions.NodeNotFound import NodeNotFound
 from NessKeys.exceptions.NodeError import NodeError
 from NessKeys.exceptions.AuthError import AuthError
+from NessKeys.exceptions.NodeNotSelected import NodeNotSelected
 
 import requests
 
@@ -24,17 +25,10 @@ class Lister:
     def process(self):
 
         if len(sys.argv) == 1:
-            km = Container.KeyManager()
-            ns = Container.NodeService()
+            fm = Container.FileManager()
             
             try:
-                if ns.joined(km.getCurrentNodeName()):
-                    km.initFilesAndDirectories()
-                    fs = Container.FilesService()
-
-                    fs.ls()
-                else:
-                    print("Current node is not set or not joined")
+                fm.ls()
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
@@ -48,19 +42,14 @@ class Lister:
                 print("Error on remote node: " + e.error)
             except AuthError as e:
                 print("Responce verification error")
+            except NodeNotSelected as e:
+                print("Current node is not set or not joined, try: python node.py sel <node_url>")
 
         elif len(sys.argv) == 2 and sys.argv[1].lower() == 'raw':
-            km = Container.KeyManager()
-            ns = Container.NodeService()
+            fm = Container.FileManager()
             
             try:
-                if ns.joined(km.getCurrentNodeName()):
-                    km.initFilesAndDirectories()
-                    fs = Container.FilesService()
-
-                    fs.raw()
-                else:
-                    print("Current node is not set or not joined")
+                fm.raw()
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
@@ -74,6 +63,8 @@ class Lister:
                 print("Error on remote node: " + e.error)
             except AuthError as e:
                 print("Responce verification error")
+            except NodeNotSelected as e:
+                print("Current node is not set or not joined, try: python node.py sel <node_url>")
 
         else:
             self.__manual()

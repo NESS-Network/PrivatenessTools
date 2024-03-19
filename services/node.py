@@ -1,6 +1,6 @@
 from NessKeys.keys.MyNodes import MyNodes
 from NessKeys.keys.Nodes import Nodes
-from NessKeys.keys.UserLocal import UserLocal
+from NessKeys.keys.Users import Users
 
 from NessKeys.exceptions.NodeNotFound import NodeNotFound
 from NessKeys.exceptions.NodeError import NodeError
@@ -15,20 +15,22 @@ import requests
 from NessKeys.interfaces.output import output as ioutput
 
 class node:
-    def __init__(self, localUserKey: UserLocal, nodes: Nodes, myNodes: MyNodes, output: ioutput):
+    def __init__(self, Users: Users, nodes: Nodes, myNodes: MyNodes, output: ioutput):
 
-        self.localUserKey = localUserKey
+        self.Users = Users
         self.Nodes = nodes
         self.MyNodes = myNodes
 
-        self.node_name = self.MyNodes.getCurrentNode()
+        current_node = self.MyNodes.getCurrentNode()
+        self.username = current_node[0]
+        self.node_name = current_node[1]
 
         self.auth = NessAuth()
 
         self.output = output
 
     def nodeInfo(self, node_url: str) -> dict:
-        return json.loads(requests.get(node_url + '/node/info').text)
+        return json.loads(requests.get(node_url + '/node/info').text)['info']
 
     def nodesList(self, node_url: str) -> dict:
         return json.loads(requests.get(node_url + '/node/nodes').text)
@@ -45,8 +47,8 @@ class node:
             url, 
             '123', 
             currentNode['public'], 
-            self.localUserKey.getPrivateKey(), 
-            self.localUserKey.getUsername() )
+            self.Users.getPrivateKey(), 
+            self.Users.getUsername() )
 
         if result['result'] == 'error':
             raise NodeError()
@@ -54,7 +56,7 @@ class node:
         if not self.auth.verify_two_way_result(currentNode['verify'], result):
             raise AuthError()
 
-        result = self.auth.decrypt_two_way_result(result, self.localUserKey.getPrivateKey())
+        result = self.auth.decrypt_two_way_result(result, self.Users.getPrivateKey())
         data = json.loads(result)
         
         return data['shadowname']
@@ -71,8 +73,8 @@ class node:
             url, 
             '123', 
             currentNode['public'], 
-            self.localUserKey.getPrivateKey(), 
-            self.localUserKey.getUsername() )
+            self.Users.getPrivateKey(), 
+            self.Users.getUsername() )
 
         if result['result'] == 'error':
             raise NodeError(result['error'])
@@ -80,7 +82,7 @@ class node:
         if not self.auth.verify_two_way_result(currentNode['verify'], result):
             raise AuthError()
 
-        result = self.auth.decrypt_two_way_result(result, self.localUserKey.getPrivateKey())
+        result = self.auth.decrypt_two_way_result(result, self.Users.getPrivateKey())
         data = json.loads(result)
 
         if data['joined']:
@@ -88,8 +90,13 @@ class node:
         else:
             return False
 
+    def exist(self, node_url: str, username: str) -> bool:
+        result = requests.get(node_url + '/node/exist/' + username).text
+        result = json.loads(result)
+        return result['info']['exists']
+
     def userinfo(self):
-        myNode = self.MyNodes.findNode(self.node_name)
+        myNode = self.MyNodes.findNode(self.username, self.node_name)
         currentNode = self.Nodes.findNode(self.node_name)
 
         if currentNode == False:
@@ -103,7 +110,7 @@ class node:
             url, 
             '123', 
             currentNode['public'], 
-            self.localUserKey.getPrivateKey(), 
+            self.Users.getPrivateKey(), 
             shadowname )
 
         if result['result'] == 'error':
@@ -112,7 +119,7 @@ class node:
         if not self.auth.verify_two_way_result(currentNode['verify'], result):
             raise AuthError()
 
-        result = self.auth.decrypt_two_way_result(result, self.localUserKey.getPrivateKey())
+        result = self.auth.decrypt_two_way_result(result, self.Users.getPrivateKey())
         data = json.loads(result)
         # print(data)
 

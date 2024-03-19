@@ -6,6 +6,10 @@ from ..JsonChecker.exceptions.LeafBuildException import LeafBuildException
 
 class MyNodes(NessKey):
 
+    def __init__(self):
+        self.__current = []
+        self.__nodes = {}
+
     def load(self, keydata: dict):
         map = {
             "filedata": {
@@ -28,9 +32,9 @@ class MyNodes(NessKey):
 
         DeepChecker.check('MyNodes key check (nodes list)', keydata['nodes'], map, 2)
 
-        KeyChecker.check('MyNodes key check (current user)', keydata['nodes'], keydata['current'][0], '/nodes/')
-
-        KeyChecker.check('MyNodes key check (current node)', keydata['nodes'][keydata['current'][0]], keydata['current'][1], '/nodes/' + keydata['current'][0] + '/')
+        if len(keydata['current']) == 2:
+            KeyChecker.check('MyNodes key check (current user)', keydata['nodes'], keydata['current'][0], '/nodes/')
+            KeyChecker.check('MyNodes key check (current node)', keydata['nodes'][keydata['current'][0]], keydata['current'][1], '/nodes/' + keydata['current'][0] + '/')
 
         self.__current = keydata["current"]
         self.__nodes = keydata["nodes"]
@@ -58,7 +62,7 @@ class MyNodes(NessKey):
         return "Privateness User Nodes"
 
     def filename():
-        return "my-nodes.json"
+        return "my-nodes.key.json"
 
     def getFilename(self):
         return MyNodes.filename()
@@ -85,13 +89,19 @@ class MyNodes(NessKey):
         else:
             return False
 
-    def addNode(self, user_name: str, node_url: str, user_shadowname: str, key: str, cipher: str):
-        self.__nodes[user_name][node_url] = \
-            {'shadowname': user_shadowname, 'key': key, 'cipher': cipher}
+    def addNode(self, user_name: str, node_url: str, user_shadowname: str, key: str, fskey: str, cipher: str):
+        if not user_name in self.__nodes:
+            self.__nodes[user_name] = {}
 
-    def updateNode(self, user_name: str, node_url: str, user_shadowname: str, key: str, cipher: str):
+        self.__nodes[user_name][node_url] = \
+            {'shadowname': user_shadowname, 'key': key, 'fskey': fskey, 'cipher': cipher}
+
+    def updateNode(self, user_name: str, node_url: str, user_shadowname: str, key: str, fskey: str, cipher: str):
+        if not user_name in self.__nodes:
+            self.__nodes[user_name] = {}
+
         self.__nodes[user_name][node_url] \
-            .update({'shadowname': user_shadowname, 'key': key, 'cipher': cipher})
+            .update({'shadowname': user_shadowname, 'key': key, 'fskey': fskey, 'cipher': cipher})
 
     def removeNode(self, user_name: str, node_url: str):
         del self.__nodes[user_name][node_url]

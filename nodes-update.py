@@ -35,6 +35,7 @@ import requests
 from ness.BlockchainRPC import BlockchainRPC
 
 from framework.Container import Container
+from framework.ARGS import ARGS
 
 class NodesUpdater:
 
@@ -46,8 +47,8 @@ class NodesUpdater:
         print("#### Update from blockchain (if RPC connection settings olready exist)")
         print(" python nodes-update.py blockchain")
         print(" python nodes-update.py blk")
-        print("#### Update from blockchain (connect to Emercoin RPC and save connection settings)")
-        print(" python nodes-update.py blk rpc-host rpc-port rpc-user rpc-password")
+        # print("#### Update from blockchain (connect to Emercoin RPC and save connection settings)")
+        # print(" python nodes-update.py blk rpc-host rpc-port rpc-user rpc-password")
         print("#### Update from remote node")
         print(" python nodes-update.py node <remote-node-url>")
         print("#### Update from remote node (random node fron existing nodes list)")
@@ -57,7 +58,7 @@ class NodesUpdater:
 
     def listNodesFromBlockchain(self, ip: str, port: int, user: str, password: str) -> dict:
         blk = BlockchainRPC(ip, port, user, password)
-        nodes = {}
+        nodes = []
         records = blk.listNodes()
 
         for record in records['result']:
@@ -68,28 +69,24 @@ class NodesUpdater:
             name = name[3:]
             name = ':'.join(name)
             worm_text = record_full['result']['value']
-
+            
             try:
-                # print(worm_text)
                 worm = etree.XML(worm_text)
                 node = worm.find("node")
                 
-                if node.attrib['type'].lower() == 'ness':
+                if node.attrib['type'].lower() == 'ness' and node.attrib['url'] and node.attrib['public'] and node.attrib['verify'] and node.attrib['nonce'] and node.attrib['master-user'] and node.attrib['tags'] and node.attrib['tariff']:
+
                     nd = {
-                        'type': 'ness',
                         'url': node.attrib['url'],
                         'public': node.attrib['public'],
                         'verify': node.attrib['verify'],
                         'nonce': node.attrib['nonce'],
+                        'master': node.attrib['master-user'],
+                        'tariff': int(node.attrib['tariff']),
                         'tags': node.attrib['tags'].split(',')
                     }
 
-                    if 'tariff' in node.attrib:
-                        nd['tariff'] = float(node.attrib['tariff'])
-                    else:
-                        nd['tariff'] = 0
-
-                    nodes[name] = nd
+                    nodes.append(nd)
                     
                     print('+', end = " ", flush = True)
             except:
@@ -100,13 +97,14 @@ class NodesUpdater:
         return nodes
 
     def listNodesFromRemoteNode(self, node_url: str) -> dict:
-        print("### Updating nodes list from remote node {}".format(node_url))
+        # print("### Updating nodes list from remote node {}".format(node_url))
+        # ns = Container.NodeService()
+        # result = ns.nodesList(node_url)
+        node_url = node_url.rstrip('/') + '/node/nodes'
 
-        ns = Container.NodeService()
-        result = ns.nodesList(node_url)
-
+        result = json.loads(requests.get(node_url).text)
+        
         if result['result'] == 'data':
-            print("+ {}".format(len(result['data'])))
             return result['data']
         elif result['result'] == 'error':
             raise NodeError(result['error'])
@@ -116,8 +114,6 @@ class NodesUpdater:
     def updateNodesFromBlockchain(self):
         km = Container.KeyManager()
 
-        print("### Updating nodes list from blockchain")
-
         blk = km.getBlockchainSettings()
         nodes = self.listNodesFromBlockchain(blk['host'], blk['port'], blk['user'], blk['password'])
         # print(nodes)
@@ -125,14 +121,25 @@ class NodesUpdater:
 
         return True
 
-    def updateNodesFromRemoteNode(self):
+    def updateNodesFromRemoteNode(self, node_url: str = ''):
         km = Container.KeyManager()
 
-        node = km.getRandomNode()
-        # print(node)
-        nodes = self.listNodesFromRemoteNode(node['url'])
+        if node_url == '':
+            node = km.getRandomNode()
+            print("### Updating nodes list from remote node {}".format(node['url']))
+            nodes = self.listNodesFromRemoteNode(node['url'])
+        else:
+            nodes = self.listNodesFromRemoteNode(node_url)
         # print(nodes)
-        km.saveNodesList(nodes)
+
+        nodes_list = []
+
+        for url in nodes:
+            if nodes[url]['type'].lower() == 'ness' and nodes[url]['url'] and nodes[url]['public'] and nodes[url]['verify'] and nodes[url]['nonce'] and nodes[url]['master'] and nodes[url]['tags'] and nodes[url]['tariff']:
+                nodes_list.append(nodes[url])
+                print("+", flush=True)
+
+        km.saveNodesList(nodes_list)
 
         return True
 
@@ -154,51 +161,63 @@ class NodesUpdater:
 
 
             try:
+                print("### Updating nodes list from blockchain")
                 self.updateNodesFromBlockchain()
             except BlockchainSettingsFileNotExist as e:
                 print("Blockchain settings not found.")
                 print("RUN python nodes-update.py blk rpc-host rpc-port rpc-user rpc-password")
             except Exception as e:
-                print ("* Error '{}'".format(str(e)))
+                if str(e) == 'Expecting value: line 1 column 1 (char 0)':
+                    print (" * Authentication error")
+                    print ("Check RPC connection")
+                    print ("Edit files '~/.privateness-keys/blockchain-rpc.key.json' and '~/.emercoin/emercoin.conf'")
+                else:
+                    print ("* Error '{}'".format(str(e)))
 
     def process(self):
         km = Container.KeyManager()
 
-        if len(sys.argv) == 6 and (sys.argv[1].lower() == 'blk' or sys.argv[1].lower() == 'blockchain'):
-            host = sys.argv[2]
-            port = int(sys.argv[3])
-            user = sys.argv[4]
-            password = sys.argv[5]
+        # if len(sys.argv) == 6 and (sys.argv[1].lower() == 'blk' or sys.argv[1].lower() == 'blockchain'):
+        #     host = sys.argv[2]
+        #     port = int(sys.argv[3])
+        #     user = sys.argv[4]
+        #     password = sys.argv[5]
 
-            nodes = self.listNodesFromBlockchain(host, port, user, password)
+        #     nodes = self.listNodesFromBlockchain(host, port, user, password)
 
-            km.saveNodesList(nodes)
+        #     km.saveNodesList(nodes)
 
-            km.saveBlockchainSettings(host, port, user, password)
+        #     km.saveBlockchainSettings(host, port, user, password)
 
-        elif len(sys.argv) == 2 and (sys.argv[1].lower() == 'blk' or sys.argv[1].lower() == 'blockchain'):
+        if ARGS.args(['blockchain']) or ARGS.args(['blk']):
             try:
+                print("### Updating nodes list from blockchain")
                 self.updateNodesFromBlockchain()
             except BlockchainSettingsFileNotExist as e:
-                print("Blockchain settings not found.")
-                print("RUN python nodes-update.py blk rpc-host rpc-port rpc-user rpc-password")
+                km.saveBlockchainSettings('127.0.0.1', 8332, 'user', 'user')
+                self.updateNodesFromBlockchain()
             except Exception as e:
-                print ("* Error '{}'".format(str(e)))
+                if str(e) == 'Expecting value: line 1 column 1 (char 0)':
+                    print (" * Authentication error")
+                    print ("Check RPC connection")
+                    print ("Edit files '~/.privateness-keys/blockchain-rpc.key.json' and '~/.emercoin/emercoin.conf'")
+                else:
+                    print ("* Error '{}'".format(str(e)))
 
-        elif len(sys.argv) == 3 and sys.argv[1].lower() == 'node':
+        elif ARGS.args(['node', str]):
             node_name = sys.argv[2]
 
             try:
-                nodes = self.listNodesFromRemoteNode(node_name)
-                # print(nodes)
-                km.saveNodesList(nodes)
+                # print("### Updating nodes list from remote node {}".format(node_name))
+                self.updateNodesFromRemoteNode(node_name)
             except NodeError as e:
                 print ("* Node error '{}'".format(e.error))
             except Exception as e:
                 print ("* Error '{}'".format(str(e)))
 
-        elif len(sys.argv) == 2 and sys.argv[1].lower() == 'node':
+        elif ARGS.args(['node']):
             try:
+                # print("### Updating nodes list from remote node")
                 self.updateNodesFromRemoteNode()
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")

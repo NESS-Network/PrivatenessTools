@@ -93,3 +93,12 @@ class Faucet(NessKey):
 
     def getUrl(self):
         return self.__url
+
+    def setPrivateKey(self, private_key: str):
+        self.__private_key = private_key
+
+    def setVerifyKey(self, verify_key: str):
+        self.__verify_key = verify_key
+
+    def setUrl(self, url: str):
+        self.__url = url

@@ -67,3 +67,9 @@ class Encrypted(NessKey):
 
     def getCipher(self):
         return self.__cipher
+
+    def setCipher(self, cipher: str):
+        self.__cipher = cipher
+
+    def setFor(self, __for: str):
+        self.__for = __for

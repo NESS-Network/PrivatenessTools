@@ -3,12 +3,15 @@ from ..JsonChecker.Checker import JsonChecker
 from ..JsonChecker.DeepChecker import DeepChecker
 from ..JsonChecker.exceptions.LeafBuildException import LeafBuildException
 
+from NessKeys.exceptions.FileNotExist import FileNotExist
+
 import math
 import random
 import time
 import os
 
 class Files(NessKey):
+    __files = {}
 
     def load(self, keydata: dict):
         map = {
@@ -27,15 +30,18 @@ class Files(NessKey):
             'filepath': str,
             'size': int,
             'status': [str, 1],
+            'size': int,
+            'progress': int,
+            'paused': bool,
             'directory': int
         }
 
-        DeepChecker.check('Files (files list)', keydata, map, 2)
+        DeepChecker.check('Files (files list)', keydata, map, 4)
 
         self.__files = keydata["files"]
 
     def compile(self) -> dict:
-        appdata = {
+        keydata = {
             "filedata": {
                 "vendor": "Privateness",
                 "type": "service",
@@ -44,7 +50,7 @@ class Files(NessKey):
             "files": self.__files
         }
 
-        return appdata
+        return keydata
 
     def worm(self) -> str:
         return ""
@@ -56,43 +62,84 @@ class Files(NessKey):
         return "Privateness Files storage file"
 
     def filename():
-        return "files.json"
+        return "files.key.json"
 
     def getFilename(self):
-        return "files.json"
+        return "files.key.json"
         
-    def getAllFiles(self, node_name: str):
-        return self.__files[node_name]
+    def getAllFiles(self, username: str, node_name: str):
+        return self.__files[username][node_name]
 
         
-    def getFiles(self, node_name: str, directory: int):
+    def getFiles(self, username: str, node_name: str, directory: int):
         fl = {}
 
-        for shadowname in self.__files[node_name]:
-            if int(self.__files[node_name][shadowname]['directory']) == directory:
-                fl[shadowname] = self.__files[node_name][shadowname]
+        if username in self.__files:
+            if node_name in self.__files[username]:
+                for shadowname in self.__files[username][node_name]:
+                    if int(self.__files[username][node_name][shadowname]['directory']) == directory:
+                        fl[shadowname] = self.__files[username][node_name][shadowname]
 
         return fl
 
-    def getFile(self, node_name: str, shadowname: str) -> dict:
-        if not node_name in self.__files:
+        
+    def getAllFiles(self, username: str, node_name: str):
+        fl = {}
+
+        if username in self.__files:
+            if node_name in self.__files[username]:
+                for shadowname in self.__files[username][node_name]:
+                    fl[shadowname] = self.__files[username][node_name][shadowname]
+
+        return fl
+
+    def getFile(self, username: str, node_name: str, shadowname: str) -> dict:
+        if not username in self.__files:
             return False
 
-        if not shadowname in self.__files[node_name]:
+        if not node_name in self.__files[username]:
             return False
 
-        return self.__files[node_name][shadowname]
+        if not shadowname in self.__files[username][node_name]:
+            return False
 
-    def getFileByFilename(self, node_name: str, filename: str):
-        for fl in self.__files[node_name]:
-            if fl['filenname'] == filename:
-                return fl
+        return self.__files[username][node_name][shadowname]
+
+    def getFileByFilename(self, username: str, node_name: str, filename: str):
+        if not username in self.__files:
+            return False
+
+        if not node_name in self.__files[username]:
+            return False
+
+        for shadowname in self.__files[username][node_name]:
+            if self.__files[username][node_name][shadowname]['filename'] == filename:
+                return shadowname
 
         return False
 
-    def removeFile(self, node_name: str, shadowname: str):
-        if shadowname in self.__files[node_name]:
-            del self.__files[node_name][shadowname]
+    def getEncUplFileByFilename(self, username: str, node_name: str, filename: str):
+        if not username in self.__files:
+            return False
+
+        if not node_name in self.__files[username]:
+            return False
+
+        for shadowname in self.__files[username][node_name]:
+            if self.__files[username][node_name][shadowname]['filename'] == filename and self.__files[username][node_name][shadowname]['filename'] != shadowname and self.__files[username][node_name][shadowname]['status'] in ('u', 'e'):
+                return shadowname
+
+        return False
+
+    def removeFile(self, username: str, node_name: str, shadowname: str):
+        if not username in self.__files:
+            return False
+
+        if not node_name in self.__files[username]:
+            return False
+
+        if shadowname in self.__files[username][node_name]:
+            del self.__files[username][node_name][shadowname]
 
     def __gen_shadowname(self):
         alphabet_1 = ('q','w','r','t','y','p','s','d','f','g','h','k','l','z','x','c','v','b','n','m')
@@ -106,63 +153,127 @@ class Files(NessKey):
             random.choice(alphabet_1) + \
             random.choice(alphabet_2) + '.' + str(rand)
 
-    def addFile(self, node_name: str, filepath: str, status: chr, directory: int, shadowname: str = '') -> str:
+    def addFile(self, username: str, node_name: str, filepath: str, status: chr, directory: int, shadowname: str = '') -> str:
         if shadowname == '':
             shadowname = self.__gen_shadowname()
 
         filename = os.path.basename(filepath)
 
-        self.__files[node_name][shadowname] = {
+
+        if not username in self.__files:
+            self.__files[username] = {}
+
+        if not node_name in self.__files[username]:
+            self.__files[username][node_name] = {}
+
+        self.__files[username][node_name][shadowname] = {
             'filename': filename,
             'filepath': filepath,
             'size': os.path.getsize(filepath),
             'status': status,
+            'progress': 0,
+            'paused': False,
             'directory': directory
         }
 
         return shadowname
 
-    def initFiles(self, node_name: str):
-        if not node_name in self.__files:
-            self.__files[node_name] = {}
+    def setProgress(self, username: str, node_name: str, shadowname: str, progress: int):
+        self.__files[username][node_name][shadowname]["progress"] = progress
 
-    def setFileName(self, node_name: str, shadowname: str, filename: str):
-        if not shadowname in self.__files[node_name]:
+    def initFiles(self, username: str, node_name: str):
+        if not username in self.__files:
+            self.__files[username] = {}
+
+        if not node_name in self.__files[username]:
+            self.__files[username][node_name] = {}
+
+    def setFileName(self, username: str, node_name: str, shadowname: str, filename: str):
+        if not username in self.__files:
             raise FileNotExist(shadowname)
 
-        self.__files[node_name][shadowname]['filename'] = filename
-
-    def setFileStatus(self, node_name: str, shadowname: str, status: chr):
-        if not shadowname in self.__files[node_name]:
+        if not node_name in self.__files[username]:
             raise FileNotExist(shadowname)
 
-        self.__files[node_name][shadowname]['status'] = status
-
-        if 'paused' in self.__files[node_name][shadowname]:
-            del self.__files[node_name][shadowname]['paused']
-
-
-    def setFilePaused(self, node_name: str, shadowname: str):
-        if not shadowname in self.__files[node_name]:
+        if not shadowname in self.__files[username][node_name]:
             raise FileNotExist(shadowname)
 
-        self.__files[node_name][shadowname]['paused'] = True
+        self.__files[username][node_name][shadowname]['filename'] = filename
 
-    def setFileDirectory(self, node_name: str, shadowname: str, directory: int):
-        if not shadowname in self.__files[node_name]:
+    def setFileStatus(self, username: str, node_name: str, shadowname: str, status: chr):
+        if not username in self.__files:
             raise FileNotExist(shadowname)
 
-        self.__files[node_name][shadowname]['directory'] = directory
-
-    def setFilePath(self, node_name: str, shadowname: str, path: str):
-        if not shadowname in self.__files[node_name]:
+        if not node_name in self.__files[username]:
             raise FileNotExist(shadowname)
 
-        self.__files[node_name][shadowname]['filepath'] = path
-
-    def clearFilePath(self, node_name: str, shadowname: str):
-        if not shadowname in self.__files[node_name]:
+        if not shadowname in self.__files[username][node_name]:
             raise FileNotExist(shadowname)
 
-        self.__files[node_name][shadowname]['filepath'] = ''
-        self.__files[node_name][shadowname]['size'] = ''
+        self.__files[username][node_name][shadowname]['status'] = status
+        self.__files[username][node_name][shadowname]['paused'] = False
+
+        # if 'paused' in self.__files[username][node_name][shadowname]:
+        #     del self.__files[username][node_name][shadowname]['paused']
+
+
+    def setFilePaused(self, username: str, node_name: str, shadowname: str):
+        if not username in self.__files:
+            raise FileNotExist(shadowname)
+
+        if not node_name in self.__files[username]:
+            raise FileNotExist(shadowname)
+
+        if not shadowname in self.__files[username][node_name]:
+            raise FileNotExist(shadowname)
+
+        self.__files[username][node_name][shadowname]['paused'] = True
+
+    def setFileRun(self, username: str, node_name: str, shadowname: str):
+        if not username in self.__files:
+            raise FileNotExist(shadowname)
+
+        if not node_name in self.__files[username]:
+            raise FileNotExist(shadowname)
+
+        if not shadowname in self.__files[username][node_name]:
+            raise FileNotExist(shadowname)
+
+        self.__files[username][node_name][shadowname]['paused'] = False
+
+    def setFileDirectory(self, username: str, node_name: str, shadowname: str, directory: int):
+        if not username in self.__files:
+            raise FileNotExist(shadowname)
+
+        if not node_name in self.__files[username]:
+            raise FileNotExist(shadowname)
+
+        if not shadowname in self.__files[username][node_name]:
+            raise FileNotExist(shadowname)
+
+        self.__files[username][node_name][shadowname]['directory'] = directory
+
+    def setFilePath(self, username: str, node_name: str, shadowname: str, path: str):
+        if not username in self.__files:
+            raise FileNotExist(shadowname)
+
+        if not node_name in self.__files[username]:
+            raise FileNotExist(shadowname)
+
+        if not shadowname in self.__files[username][node_name]:
+            raise FileNotExist(shadowname)
+
+        self.__files[username][node_name][shadowname]['filepath'] = path
+
+    def clearFilePath(self, username: str, node_name: str, shadowname: str):
+        if not username in self.__files:
+            raise FileNotExist(shadowname)
+
+        if not node_name in self.__files[username]:
+            raise FileNotExist(shadowname)
+
+        if not shadowname in self.__files[username][node_name]:
+            raise FileNotExist(shadowname)
+
+        self.__files[username][node_name][shadowname]['filepath'] = ''
+        self.__files[username][node_name][shadowname]['size'] = ''

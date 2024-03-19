@@ -1,6 +1,8 @@
 from NessKeys.KeyManager import KeyManager
 from NessKeys.StorageJson import StorageJson
 from NessKeys.KeyMakerNess import KeyMakerNess
+from NessKeys.FileManager import FileManager
+from NessKeys.NodeManager import NodeManager
 
 from services.node import node
 from services.files import files
@@ -18,11 +20,17 @@ class Container:
 
     def NodeService() -> node:
         km = Container.KeyManager()
-        return node(km.getUserLocalKey(), km.getNodesKey(), km.getMyNodesKey(), Container.output())
+        return node(km.getUsersKey(), km.getNodesKey(), km.getMyNodesKey(), Container.output())
 
     def FilesService() -> files:
         km = Container.KeyManager()
-        return files(km.getUserLocalKey(), km.getNodesKey(), km.getMyNodesKey(), km.getFilesKey(), km.getDirectoriesKey(), Container.output())
+        return files(km.getUsersKey(), km.getNodesKey(), km.getMyNodesKey(), km.getFilesKey(), km.getDirectoriesKey(), Container.output())
+
+    def NodeManager() -> NodeManager:
+        return NodeManager(Container.KeyManager(), Container.NodeService())
+
+    def FileManager() -> FileManager:
+        return FileManager(Container.KeyManager(), Container.NodeService(), Container.FilesService())
 
     def output() -> ioutput:
         return ConsoleOutput()

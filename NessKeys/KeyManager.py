@@ -2,6 +2,7 @@ import os
 import glob
 import random
 import sys
+import glob
 from pathlib import Path
 from base64 import b64encode
 from base64 import b64decode
@@ -14,18 +15,21 @@ from nacl.public import PrivateKey, PublicKey
 from nacl.encoding import Base64Encoder
 import validators
 import lxml.etree as etree
+from random_word import RandomWords
 
 import NessKeys.interfaces.NessKey as NessKey
 from NessKeys.keys.Files import Files as FilesKey
 from NessKeys.keys.Directories import Directories as DirectoriesKey
-from NessKeys.keys.User import User as UserKey
+from NessKeys.keys.Users import Users as Users
 from NessKeys.keys.Node import Node as NodeKey
-from NessKeys.keys.UserLocal import UserLocal
+# from NessKeys.keys.UserLocal import UserLocal
 from NessKeys.keys.Encrypted import Encrypted
 from NessKeys.keys.BlockchainRPC import BlockchainRPC as BlockchainRpcKey
 from NessKeys.keys.Nodes import Nodes
 from NessKeys.keys.MyNodes import MyNodes
 from NessKeys.keys.Faucet import Faucet as Faucetkey
+from NessKeys.keys.Backup import Backup as BackupKey
+from NessKeys.keys.Settings import Settings as SettingsKey
 import NessKeys.interfaces.KeyMaker as KeyMaker
 import NessKeys.interfaces.Storage as Storage
 import NessKeys.interfaces.NessKey as NessKey
@@ -34,6 +38,7 @@ import uuid
 import NessKeys.Prng as prng
 from NessKeys.CryptorMaker import CryptorMaker
 from NessKeys.PasswordCryptor import PasswordCryptor
+from NessKeys.TextCryptor import TextCryptor
 
 
 from NessKeys.exceptions.BlockchainSettingsFileNotExist import BlockchainSettingsFileNotExist
@@ -41,9 +46,12 @@ from NessKeys.exceptions.NodesFileDoesNotExist import NodesFileDoesNotExist
 from NessKeys.exceptions.EmptyNodesList import EmptyNodesList
 from NessKeys.exceptions.NodeError import NodeError
 from NessKeys.exceptions.NodeNotInList import NodeNotInList
-from NessKeys.exceptions.UserLocalKeyFileDoesNotExist import UserLocalKeyFileDoesNotExist
+from NessKeys.exceptions.UserNotFound import UserNotFound
+from NessKeys.exceptions.UsersKeyDoesNotExist import UsersKeyDoesNotExist
 from NessKeys.exceptions.FilesKeyDoesNotExist import FilesKeyDoesNotExist
 from NessKeys.exceptions.DirectoriesKeyDoesNotExist import DirectoriesKeyDoesNotExist
+from NessKeys.exceptions.MyNodesFileDoesNotExist import MyNodesFileDoesNotExist
+from NessKeys.JsonChecker.exceptions.LeafBuildException import LeafBuildException
 
 class KeyManager:
 
@@ -51,6 +59,10 @@ class KeyManager:
         self.__storage = storage
         self.__key_maker = key_maker
         self.directory = str(Path.home()) + "/.privateness-keys"
+        self.keys = glob.glob(self.directory + '/*.json')
+
+    def getLocalKeyFiles(self):
+        return self.keys
 
     def fileName(self, filename: str) -> str:
         return self.directory + "/" + filename
@@ -61,73 +73,139 @@ class KeyManager:
     def saveKey(self, key: NessKey):
         self.__storage.save(key.compile(), self.fileName(key.getFilename()))
 
-    def createUserKey(self, username: str, keypairs: int, tags: str, entropy: int):
-        key_pairs = self.__keypairs(keypairs, entropy)
-        filename = urllib.parse.quote_plus(username) + ".key.json"
+    def keyExists(self, key: NessKey):
+        return os.path.exists(self.fileName(key.getFilename()))
 
-        userdata = {
-            "filedata": {
-                "vendor": "Privateness",
-                "type": "key",
-                "for": "user"
-            },
-            "username": username,
-            "keys": {
-                'private': key_pairs['private'],
-                'verify': key_pairs['verify'],
-                'public': key_pairs['public'],
-                'current': key_pairs['current']
-            },
-            "nonce": b64encode(get_random_bytes(16)).decode('utf-8'),
-            "tags": tags
+    def initKey(self, key: NessKey):
+        if not self.keyExists(key):
+            self.saveKey(key)
+
+    def loadKey(self, key: NessKey):
+        if self.keyExists(key):
+            filename = self.fileName(key.getFilename())
+            keydata = self.__storage.restore(filename)
+            key.load(keydata)
+
+        return key
+
+    def createUsersKey(self, username: str, tags: str, entropy: int):
+        userkey = Users()
+        filename = self.fileName(userkey.getFilename())
+
+        keydata = self.__storage.restore(filename)
+
+        if keydata != False:
+            userkey.load(keydata)
+
+        key_pair = self.__keypair(entropy)
+
+        nonce = b64encode(get_random_bytes(16)).decode('utf-8')
+        tags = tags.split(',')
+
+        userkey.addNewUser(username, key_pair[0], key_pair[2], key_pair[1], nonce, tags)
+
+        self.__storage.save(userkey.compile(), filename)
+
+    def changeCurrentUser(self, username: str):
+        userkey = Users()
+        filename = self.fileName(userkey.getFilename())
+
+        keydata = self.__storage.restore(filename)
+
+        if keydata != False:
+            userkey.load(keydata)
+
+        if userkey.findUser(username) == False:
+            raise UserNotFound(username)
+
+        userkey.setCurrentUser(username)
+
+        self.__storage.save(userkey.compile(), filename)
+
+    def showUsersKey(self) -> dict|bool:
+        userkey = Users()
+        filename = self.fileName(userkey.getFilename())
+
+        keydata = self.__storage.restore(filename)
+
+        if keydata == False:
+            return False
+
+        userkey.load(keydata)
+
+        return {
+            'current': userkey.getCurrentUser(),
+            'users': userkey.getUsers(),
+            'nvs': userkey.nvs(),
+            'worm': userkey.worm()
         }
 
-        userkey = UserKey(userdata)
-        self.__storage.save(userkey.compile(), filename)
+    def getCurrentUser(self) -> str|bool:
+        userkey = Users()
+        filename = self.fileName(userkey.getFilename())
+
+        keydata = self.__storage.restore(filename)
+
+        if keydata == False:
+            return False
+
+        userkey.load(keydata)
+
+        return userkey.getCurrentUser()
+
 
     def createNodeKey(self, url: str, tariff: int, masterUser: str, tags: str, entropy: int):
         keypair = self.__keypair(entropy)
         filename = urllib.parse.quote_plus(url) + ".key.json"
 
-        nodedata = {
-            "filedata": {
-                "vendor": "Privateness",
-                "type": "key",
-                "for": "node"
-            },
-            "keys": {
-                "private": keypair[0],
-                "verify": keypair[1],
-                "public": keypair[2]
-            },
-            "url": url,
-            "nonce": b64encode(get_random_bytes(16)).decode('utf-8'),
-            "master-user": masterUser,
-            "tags": tags,
-            "tariff": tariff,
-        }
+        nodekey = NodeKey()
+        nodekey.setUrl(url)
+        nodekey.setTariff(tariff)
+        nodekey.setMasterUser(masterUser)
+        nodekey.setTags(tags)
+        nodekey.setPrivateKey(keypair[0])
+        nodekey.setVerifyKey(keypair[1])
+        nodekey.setPublicKey(keypair[2])
+        nodekey.setNonce(b64encode(get_random_bytes(16)).decode('utf-8'))
 
-        nodekey = NodeKey(nodedata)
         self.__storage.save(nodekey.compile(), filename)
 
     def createFaucetkey(self, url: str, entropy: int):
         keypair = self.__keypair(entropy)
 
-        fdata = {
-            "filedata": {
-                "vendor": "Privateness",
-                "type": "key",
-                "for": "faucet"
-            },
-            "keys": {
-                "private": keypair[0],
-                "verify": keypair[1]
-            },
-            "url": url
-        }
+        fkey = Faucetkey()
+        fkey.setPrivateKey(keypair[0])
+        fkey.setVerifyKey(keypair[1])
+        fkey.setUrl(url)
 
-        fkey = Faucetkey(fdata)
         self.__storage.save(fkey.compile(), fkey.getFilename())
+
+    def createBackupKey(self, backup_type: str, address: str, entropy: int) -> BackupKey:
+        w = self.__generate_word_seed(entropy)
+        seed = ' '.join(w)
+        key = self.KeyFromSeed(seed)
+
+        bkey = BackupKey()
+        bkey.setType(backup_type)
+        bkey.setAddress(address)
+        bkey.setSeed(seed)
+        bkey.setKey(key)
+        
+        self.__storage.save(bkey.compile(), self.fileName(bkey.getFilename()))
+
+        return bkey
+
+    def getBackupKey(self) -> BackupKey:
+        bkey = BackupKey()
+        filename = self.fileName(bkey.getFilename())
+
+        if not os.path.exists(filename):
+            return False
+
+        keydata = self.__storage.restore(filename)
+        bkey.load(keydata)
+
+        return bkey
 
     def __getKey(self, filename: str) -> NessKey:
         keydata = self.__storage.restore(filename)
@@ -157,11 +235,11 @@ class KeyManager:
         if Key:
             return Key.worm()
 
-    def changeUserKeypair(self, filename: str, keypairIndex: int):
-        userdata = self.__storage.restore(filename)
-        userkey = UserKey(userdata)
-        userkey.changeKeypair(keypairIndex)
-        self.__storage.save(userkey.compile(), filename)
+    # def changeUserKeypair(self, filename: str, keypairIndex: int):
+    #     userdata = self.__storage.restore(filename)
+    #     userkey = Users(userdata)
+    #     userkey.changeKeypair(keypairIndex)
+    #     self.__storage.save(userkey.compile(), filename)
 
     def listKeys(self, filename: str, password: str = 'qwerty123'):
         cryptor = CryptorMaker.make('salsa20')
@@ -185,7 +263,7 @@ class KeyManager:
 
         return True
 
-    def unpackKeys(self, filename: str, password: str = 'qwerty123', dir = ""):
+    def unpackKeysPassword(self, filename: str, password: str = 'qwerty123', dir = ""):
         cryptor = CryptorMaker.make('salsa20')
         pc = PasswordCryptor(cryptor, password)
 
@@ -206,7 +284,7 @@ class KeyManager:
 
         return True
 
-    def packKeys(self, keysFiles: list, outFilename: str, password: str = 'qwerty123'):
+    def packKeysPassword(self, keysFiles: list, outFilename: str, password: str = 'qwerty123'):
         cryptor = CryptorMaker.make('salsa20')
         pc = PasswordCryptor(cryptor, password)
         keys = []
@@ -237,64 +315,130 @@ class KeyManager:
         
         self.__storage.save(encrypted.compile(), outFilename)
 
-    def hasUserLocal(self) -> bool:
-        return self.fileExists(UserLocal.filename())
 
-    def getUserLocalKey(self):
-        filename = self.fileName(UserLocal.filename())
+
+    def unpackKeys(self, key: bytes, filename: str):
+        Key = self.__getKey(filename)
+        packedKeys = Key.getKeys()
+        crc = Key.getCrc()
+        cipher = Key.getCipher()
+
+        cryptor = CryptorMaker.make(cipher)
+        pc = TextCryptor(cryptor, key)
+
+        try:
+            i = 0
+            for packedKey in packedKeys:
+                # Unpack key
+                original_key = pc.decrypt( b64decode(packedKey), b64decode(crc[i]) ).decode('utf-8')
+                # Restore key
+                keydata = json.loads(original_key)
+                key = self.__key_maker.make(keydata)
+                # Save Key
+                self.__storage.save(key.compile(), self.fileName(key.getFilename()))
+                i += 1
+        except ValueError as error:
+            print(' !!! Decryption of {} failed: {}'.format(filename, error))
+            return False
+
+        return True
+
+    def packKeys(self, keysFiles: list, cipher: str, key: bytes, outFilename: str):
+        cryptor = CryptorMaker.make(cipher)
+        pc = TextCryptor(cryptor, key)
+        keys = []
+        crc = []
+
+        for keysFile in keysFiles:
+            # Load key
+            try:
+                Key = self.__getKey(keysFile)
+                err_msg = "Wrong format"
+            except LeafBuildException as error:
+                Key = False
+                err_msg = error.msg
+            
+            if Key != False:
+                skey = Key.serialize()
+                # CRC
+                crc.append('')
+                # Pack key
+                skey = b64encode(pc.encrypt(bytes(skey, 'utf8'))).decode('utf-8')
+                keys.append(skey)
+
+                print(keysFile, 'OK')
+
+            else:
+                print(keysFile, 'Failed ({})'.format(err_msg))
+
+        encrypted = Encrypted()
+        encrypted.setFor("Backup")
+        encrypted.setKeys(keys)
+        encrypted.setCrc(crc)
+        encrypted.setCipher(cipher)
+        
+        self.__storage.save(encrypted.compile(), outFilename)
+
+    def hasUsersKey(self) -> bool:
+        return self.fileExists(Users.filename())
+
+    def getUsersKey(self):
+        filename = self.fileName(Users.filename())
 
         if os.path.exists(filename):
+            ukey = Users()
             keydata = self.__storage.restore(filename)
-            return UserLocal(keydata)
+            ukey.load(keydata)
+            return ukey
         else:
-            raise UserLocalKeyFileDoesNotExist()
+            raise UsersKeyDoesNotExist()
 
 
-    def init(self, user_keyfile: str):
-        userdata = self.__storage.restore(user_keyfile)
-        userkey = UserKey(userdata)
+    # def init(self, user_keyfile: str):
+    #     userdata = self.__storage.restore(user_keyfile)
+    #     userkey = Users(userdata)
 
-        userdata = {
-            "filedata": {
-                "vendor": "Privateness",
-                "type": "key",
-                "for": "user-local"
-            },
-            "username": userkey.getUsername(),
-            "nonce": userkey.getNonce(),
-            "keys": {
-                "private": userkey.getPrivateKey(),
-                "public": userkey.getPublicKey(),
-                "verify": userkey.getVerifyKey(),
-            },
-        }
+    #     userdata = {
+    #         "filedata": {
+    #             "vendor": "Privateness",
+    #             "type": "key",
+    #             "for": "user-local"
+    #         },
+    #         "username": userkey.getUsername(),
+    #         "nonce": userkey.getNonce(),
+    #         "keys": {
+    #             "private": userkey.getPrivateKey(),
+    #             "public": userkey.getPublicKey(),
+    #             "verify": userkey.getVerifyKey(),
+    #         },
+    #     }
 
-        localkey = UserLocal(userdata)
+    #     localkey = UserLocal(userdata)
 
-        if not os.path.exists(self.directory):
-            os.mkdir(self.directory)
+    #     if not os.path.exists(self.directory):
+    #         os.mkdir(self.directory)
 
-        self.__storage.save(localkey.compile(), self.fileName(UserLocal.filename()))
+    #     self.__storage.save(localkey.compile(), self.fileName(UserLocal.filename()))
 
 
-    def init_node(self, node_keyfile: str):
-        keydata = self.__storage.restore(node_keyfile)
-        nodekey = NodeKey(keydata)
+    # def init_node(self, node_keyfile: str):
+    #     keydata = self.__storage.restore(node_keyfile)
+    #     nodekey = NodeKey(keydata)
 
-        node_data = {
-            "master-user": nodekey.getMasterUser(),
-            "nonce": nodekey.getNonce(),
-            "private": nodekey.getPrivateKey(),
-            "public": nodekey.getPublicKey(),
-            "tariff": nodekey.getTariff(),
-            "period": "7200",
-            "delta": "1200",
-            "url": nodekey.getUrl(),
-            "verify": nodekey.getVerifyKey(),
-            "slots": 10
-        }
+    #     node_data = {
+    #         "master-user": nodekey.getMasterUser(),
+    #         "nonce": nodekey.getNonce(),
+    #         "private": nodekey.getPrivateKey(),
+    #         "public": nodekey.getPublicKey(),
+    #         "tariff": nodekey.getTariff(),
+    #         "period": "7200",
+    #         "delta": "1200",
+    #         "url": nodekey.getUrl(),
+    #         "verify": nodekey.getVerifyKey(),
+    #         "slots": 10
+    #     }
 
-        self.__storage.save(node_data, 'node.json')
+    #     self.__storage.save(node_data, 'node.json')
 
     def save(self, outFilename: str, password: str = 'qwerty123'):
         keysFiles = glob.glob(self.directory + "/*.json" )
@@ -318,40 +462,33 @@ class KeyManager:
 
     def getNodesKey(self):
         nodedata = self.__storage.restore(self.fileName(Nodes.filename()))
-        return Nodes(nodedata)
+        nodes = Nodes()
+        nodes.load(nodedata)
+        return nodes
 
     def getNodesList(self) -> list:
         nodedata = self.__storage.restore(self.fileName(Nodes.filename()))
-        nodes = Nodes(nodedata)
+        nodes = Nodes()
+        nodes.load(nodedata)
         return nodes.compile()['nodes']
 
-    def saveNodesList(self, modes: list):
-        keydata = {
-            "filedata": {
-                "vendor": "Privateness",
-                "type": "data",
-                "for": "nodes-list"
-            },
-            "nodes": modes
-        }
+    def saveNodesList(self, nodes_list: list):
+        nodes = Nodes()
 
-        nodes = Nodes(keydata)
+        if self.fileExists(Nodes.filename()):
+            nodedata = self.__storage.restore(self.fileName(Nodes.filename()))
+            nodes.load(nodedata)
+
+        nodes.setNodes(nodes_list)
         self.__storage.save(nodes.compile(), self.fileName(Nodes.filename()))
 
     def saveBlockchainSettings(self, host: str, port: int, user: str, password: str):
-        keydata = {
-            "filedata": {
-                "vendor": "Privateness",
-                "type": "config",
-                "for": "blockchain"
-            },
-            "rpc-host": host,
-            "rpc-port": port,
-            "rpc-user": user,
-            "rpc-password": password,
-        }
+        key = BlockchainRpcKey()
 
-        key = BlockchainRpcKey(keydata)
+        key.setHost(host)
+        key.setPort(port)
+        key.setUser(user)
+        key.setPassword(password)
 
         self.__storage.save(key.compile(), self.fileName(BlockchainRpcKey.filename()))
 
@@ -361,8 +498,10 @@ class KeyManager:
         if not os.path.exists(filename):
             raise BlockchainSettingsFileNotExist()
 
+        key = BlockchainRpcKey()
         keydata = self.__storage.restore(filename)
-        key = BlockchainRpcKey(keydata)
+        key.load(keydata)
+
         return {'host': key.getHost(), 'port': key.getPort(), 'user': key.getUser(), 'password': key.getPassword()}
 
     def listNodes(self) -> dict:
@@ -372,7 +511,8 @@ class KeyManager:
             raise NodesFileDoesNotExist()
 
         keydata = self.__storage.restore(filename)
-        key = Nodes(keydata)
+        key = Nodes()
+        key.load(keydata)
         return key.getNodes()
 
 
@@ -385,42 +525,22 @@ class KeyManager:
         rnd = random.randrange(0, len(nodes))
         cnt = 0
             
-        for url in nodes:
+        for node in nodes:
             if cnt == rnd:
-                return nodes[url]
+                return node
             cnt += 1
 
     def hasMyNodes(self) -> bool:
         return os.path.exists( self.fileName(MyNodes.filename()) )
 
-    def initMyNodes(self, node_name: str, user_shadowname: str):
-        keydata = {
-            "filedata": {
-                "for": "node",
-                "type": "service",
-                "vendor": "Privateness"
-            },
-            "current-node": node_name,
-            "my-nodes": {
-                node_name: {
-                    "shadowname": user_shadowname
-                }
-            }
-        }
-
-        key = MyNodes(keydata)
-
-        self.__storage.save(key.compile(), self.fileName(MyNodes.filename()))
+    def initMyNodes(self):
+        key = MyNodes()
+        self.initKey(key)
 
     def getMyNodesKey(self):
-        filename = self.fileName(MyNodes.filename())
-
-        if not os.path.exists(filename):
-            raise MyNodesFileDoesNotExist()
-
-        keydata = self.__storage.restore(filename)
-
-        return MyNodes(keydata)
+        mkey =  MyNodes()
+        self.loadKey(mkey)
+        return mkey
 
 
     def isNodeInMyNodes(self, node_name: str) -> bool:
@@ -429,20 +549,24 @@ class KeyManager:
         return (key.findNode(node_name) != False)
 
     def isNodeInNodesList(self, node_name: str) -> bool:
-        filename = self.fileName(Nodes.filename())
-
-        if not os.path.exists(filename):
+        key = Nodes()
+        
+        if not self.keyExists(key):
             raise NodesFileDoesNotExist()
 
-        keydata = self.__storage.restore(filename)
-        key = Nodes(keydata)
+        self.loadKey(key)
 
         return (key.findNode(node_name) != False)
 
-    def getCurrentNodeName(self) -> str:
+    def getCurrentNodeName(self):
         if self.hasMyNodes():
             key = self.getMyNodesKey()
-            return key.getCurrentNode()
+            current_node = key.getCurrentNode()
+
+            if len(current_node) == 0:
+                return False
+            else:
+                return current_node[1]
         else:
             return False
 
@@ -451,226 +575,232 @@ class KeyManager:
 
         return nodes[self.getCurrentNodeName()]
 
-    def saveCurrentNode(self, node_name: str, user_shadowname: str):
-        key = self.getMyNodesKey()
+    def hasNode(self, node_name: str):
+        nkey = self.getMyNodesKey()
+        ukey = self.getUsersKey()
+        username = ukey.getUsername()
 
-        if not key.findNode(node_name):
-            key.addNode(node_name, user_shadowname)
+        return nkey.findNode(username, node_name)
+
+    def saveCurrentNode(self, node_name: str, user_shadowname: str, key: str, fskey: str, cipher: str):
+        nkey = self.getMyNodesKey()
+        ukey = self.getUsersKey()
+        username = ukey.getUsername()
+
+        if not nkey.findNode(username, node_name):
+            nkey.addNode(username, node_name, user_shadowname, key, fskey, cipher)
         else:
-            key.updateNode(node_name, user_shadowname)
+            nkey.updateNode(username, node_name, user_shadowname, key, fskey, cipher)
 
-        # self.__storage.save(key.compile(), self.fileName(MyNodes.filename()))
-        self.saveKey(key)
+        self.saveKey(nkey)
 
 
     def changeCurrentNode(self, node_name: str):
-        key = self.getMyNodesKey()
-        if not key.findNode(node_name):
+        nkey = self.getMyNodesKey()
+        ukey = self.getUsersKey()
+        username = ukey.getUsername()
+
+        if not nkey.findNode(username, node_name):
             raise NodeNotInList()
 
-        key.changeCurrentNode(node_name)
+        nkey.changeCurrentNode(username, node_name)
 
-        # self.__storage.save(key.compile(), self.fileName(MyNodes.filename()))
-        self.saveKey(key)
+        self.saveKey(nkey)
 
     def hasFilesKey(self) -> bool:
         return self.hasFiles()
 
     def hasDirectoriesKey(self) -> bool:
-        return os.path.exists( self.fileName(DirectoriesKey.filename()) )
+        key = DirectoriesKey()
+        return self.keyExists(key)
 
     def initFiles(self):
-        keydata = {
-            "filedata": {
-                "vendor": "Privateness",
-                "type": "service",
-                "for": "files"
-            },
-            "files": {}
-        }
-
-        key = FilesKey(keydata)
-
-        self.__storage.save(key.compile(), self.fileName(FilesKey.filename()))
+        key = FilesKey()
+        self.initKey(key)
 
     def initDirectories(self):
-        keydata = {
-            "filedata": {
-                "vendor": "Privateness",
-                "type": "service",
-                "for": "files-directories"
-            },
-            "directories": {},
-            "current": {}
-        }
-
-        key = DirectoriesKey(keydata)
-
-        self.__storage.save(key.compile(), self.fileName(DirectoriesKey.filename()))
+        key = DirectoriesKey()
+        self.initKey(key)
 
     def initFilesAndDirectories(self):
-        if not self.hasDirectoriesKey():
-            self.initDirectories()
-
-        if not self.hasFilesKey():
-            self.initFiles()
+        self.initDirectories()
+        self.initFiles()
 
         node_name = self.getCurrentNodeName()
+        username = self.getCurrentUser()
 
-        dk = self.getDirectoriesKey()
-        dk.initDirectories(node_name)
+        if node_name != False:
+            dk = self.getDirectoriesKey()
+            dk.initDirectories(username, node_name)
 
-        fk = self.getFilesKey()
-        fk.initFiles(node_name)
+            fk = self.getFilesKey()
+            fk.initFiles(username, node_name)
 
-        # self.__storage.save(dk.compile(), self.fileName(dk.getFilename()) )
-        # self.__storage.save(fk.compile(), self.fileName(fk.getFilename()) )
-        self.saveKey(dk)
-        self.saveKey(fk)
+            self.saveKey(dk)
+            self.saveKey(fk)
 
     def getFilesKey(self) -> FilesKey:
-        filename = self.fileName(FilesKey.filename())
-
-        if not os.path.exists(filename):
-            raise FilesKeyDoesNotExist()
-
-        keydata = self.__storage.restore(filename)
-
-        return FilesKey(keydata)
+        fk = FilesKey()
+        self.loadKey(fk)
+        return fk
 
     def getDirectoriesKey(self) -> DirectoriesKey:
-        filename = self.fileName(DirectoriesKey.filename())
+        dk = DirectoriesKey()
+        self.loadKey(dk)
+        return dk
 
-        if not os.path.exists(filename):
-            raise DirectoriesKeyDoesNotExist()
-
-        keydata = self.__storage.restore(filename)
-
-        return DirectoriesKey(keydata)
+    def initKeys(self):
+        self.initSettings()
+        self.initMyNodes()
+        self.initFilesAndDirectories()
 
     def isFile(self, ID: str) -> bool:
         return not ID.isnumeric()
+
+    def findFile(self, filename: str):
+        return self.getFilesKey().getFileByFilename(self.getCurrentUser(), self.getCurrentNodeName(), filename)
+    
+    def findEncUplFile(self, filename: str):
+        return self.getFilesKey().getEncUplFileByFilename(self.getCurrentUser(), self.getCurrentNodeName(), filename)
     
     def getFile(self, shadowname: str):
-        return self.getFilesKey().getFile(self.getCurrentNodeName(), shadowname)
+        return self.getFilesKey().getFile(self.getCurrentUser(), self.getCurrentNodeName(), shadowname)
     
     def getDirectory(self, ID: int):
-        return self.getDirectoriesKey().get(self.getCurrentNodeName(), ID)
+        return self.getDirectoriesKey().get(self.getCurrentUser(), self.getCurrentNodeName(), ID)
     
     def tree(self):
-        return self.getDirectoriesKey().tree(self.getCurrentNodeName())
+        return self.getDirectoriesKey().tree(self.getCurrentUser(), self.getCurrentNodeName())
 
     def getDirectoryParentID(self, ID: int):
-        return self.getDirectoriesKey().get_parent_id(self.getCurrentNodeName(), ID)
+        return self.getDirectoriesKey().get_parent_id(self.getCurrentUser(), self.getCurrentNodeName(), ID)
 
-    def mkdir(self, parent_id: int, name: str):
+    def mkdir(self, parent_id: int, name: str) -> int:
         dk = self.getDirectoriesKey()
-        dk.mkdir(self.getCurrentNodeName(), parent_id, name)
+        id = dk.mkdir(self.getCurrentUser(), self.getCurrentNodeName(), parent_id, name)
         # print(dk.compile(), self.fileName(dk.getFilename()))
         # self.__storage.save(dk.compile(), self.fileName(dk.getFilename()) )
         self.saveKey(dk)
+        return id
 
     def getCurrentDir(self) -> int:
-        return self.getDirectoriesKey().getCurrentDir(self.getCurrentNodeName())
+        return self.getDirectoriesKey().getCurrentDir(self.getCurrentUser(), self.getCurrentNodeName())
 
     def moveDir(self, ID: int, new_parent_id: int):
         dk = self.getDirectoriesKey()
-        dk.move(self.getCurrentNodeName(), ID, new_parent_id)
+        dk.move(self.getCurrentUser(), self.getCurrentNodeName(), ID, new_parent_id)
         self.saveKey(dk)
 
     def moveFile(self, shadowname: str, directory: int):
         fk = self.getFilesKey()
-        fk.setFileDirectory(self.getCurrentNodeName(), shadowname, directory)
+        fk.setFileDirectory(self.getCurrentUser(), self.getCurrentNodeName(), shadowname, directory)
         self.saveKey(fk)
 
     def rename(self, ID: int, new_name: str):
         dk = self.getDirectoriesKey()
-        dk.rename(self.getCurrentNodeName(), ID, new_name)
+        dk.rename(self.getCurrentUser(), self.getCurrentNodeName(), ID, new_name)
         # self.__storage.save(dk.compile(), self.fileName(dk.getFilename()) )
         self.saveKey(dk)
 
     def rmdir(self, ID: str):
         dk = self.getDirectoriesKey()
-        dk.remove(self.getCurrentNodeName(), int(ID))
+        dk.remove(self.getCurrentUser(), self.getCurrentNodeName(), int(ID))
         # self.__storage.save(dk.compile(), self.fileName(dk.getFilename()) )
         self.saveKey(dk)
 
     def remove(self, ID: str):
         if self.isFile(ID):
             fk = self.getFilesKey()
-            fk.removeFile(self.getCurrentNodeName(), str(ID))
+            fk.removeFile(self.getCurrentUser(), self.getCurrentNodeName(), str(ID))
             # self.__storage.save(fk.compile(), self.fileName(fk.getFilename()) )
             self.saveKey(fk)
         else:
             dk = self.getDirectoriesKey()
-            dk.remove(self.getCurrentNodeName(), int(ID))
+            dk.remove(self.getCurrentUser(), self.getCurrentNodeName(), int(ID))
             # self.__storage.save(dk.compile(), self.fileName(dk.getFilename()) )
             self.saveKey(dk)
 
     def cd(self, ID: int):
         dk = self.getDirectoriesKey()
-        dk.cd(self.getCurrentNodeName(), ID)
+        dk.cd(self.getCurrentUser(), self.getCurrentNodeName(), ID)
         # self.__storage.save(dk.compile(), self.fileName(dk.getFilename()) )
         self.saveKey(dk)
 
     def up(self):
         dk = self.getDirectoriesKey()
-        dk.up(self.getCurrentNodeName())
+        dk.up(self.getCurrentUser(), self.getCurrentNodeName())
         # self.__storage.save(dk.compile(), self.fileName(dk.getFilename()) )
         self.saveKey(dk)
 
     def top(self):
         dk = self.getDirectoriesKey()
-        dk.top(self.getCurrentNodeName())
+        dk.top(self.getCurrentUser(), self.getCurrentNodeName())
         # self.__storage.save(dk.compile(), self.fileName(dk.getFilename()) )
         self.saveKey(dk)
 
     def path(self):
         dk = self.getDirectoriesKey()
-        dk.path(self.getCurrentNodeName())
+        dk.path(self.getCurrentUser(), self.getCurrentNodeName())
         # self.__storage.save(dk.compile(), self.fileName(dk.getFilename()) )
         self.saveKey(dk)
 
     def getDirectories(self, parent_id: int):
         dk = self.getDirectoriesKey()
-        return dk.getDirectories(self.getCurrentNodeName(), parent_id)
+        return dk.getDirectories(self.getCurrentUser(), self.getCurrentNodeName(), parent_id)
 
     def ls(self):
         dk = self.getDirectoriesKey()
-        return dk.ls(self.getCurrentNodeName())
+        return dk.ls(self.getCurrentUser(), self.getCurrentNodeName())
 
-    def addFile(self, filepath: str, cipher: str, cipher_type: str, status: chr, directory: int, shadowname: str = ''):
+    def addFile(self, filepath: str, status: chr, directory: int, shadowname: str = ''):
         fk = self.getFilesKey()
-        shadowname = fk.addFile(self.getCurrentNodeName(), filepath, cipher, cipher_type, status, directory, shadowname)
+        shadowname = fk.addFile(self.getCurrentUser(), self.getCurrentNodeName(), filepath, status, directory, shadowname)
         self.saveKey(fk)
         return shadowname
 
     def getFiles(self, directory: int):
         fk = self.getFilesKey()
-        return fk.getFiles(self.getCurrentNodeName(), directory)
+        return fk.getFiles(self.getCurrentUser(), self.getCurrentNodeName(), directory)
 
     def removeFile(self, shadowname: str):
         fk = self.getFilesKey()
-        fk.removeFile(self.getCurrentNodeName(), shadowname)
+        fk.removeFile(self.getCurrentUser(), self.getCurrentNodeName(), shadowname)
         self.saveKey(fk)
 
     def clearFilePath(self, shadowname: str):
         fk = self.getFilesKey()
-        fk.clearFilePath(self.getCurrentNodeName(), shadowname)
+        fk.clearFilePath(self.getCurrentUser(), self.getCurrentNodeName(), shadowname)
         self.saveKey(fk)
 
     def setFileStatus(self, shadowname: str, status: chr):
         fk = self.getFilesKey()
-        fk.setFileStatus(self.getCurrentNodeName(), shadowname, status)
+        fk.setFileStatus(self.getCurrentUser(), self.getCurrentNodeName(), shadowname, status)
         self.saveKey(fk)
 
     def setFilePaused(self, shadowname: str):
         fk = self.getFilesKey()
-        fk.setFilePaused(self.getCurrentNodeName(), shadowname)
+        fk.setFilePaused(self.getCurrentUser(), self.getCurrentNodeName(), shadowname)
         self.saveKey(fk)
+
+    def isFilePaused(self, shadowname: str):
+        fk = self.getFilesKey()
+        file = fk.getFile(self.getCurrentUser(), self.getCurrentNodeName(), shadowname)
+        return file['paused']
+
+    def setFileRun(self, shadowname: str):
+        fk = self.getFilesKey()
+        fk.setFileRun(self.getCurrentUser(), self.getCurrentNodeName(), shadowname)
+        self.saveKey(fk)
+
+    def setFileProgress(self, shadowname: str, progress: int):
+        fk = self.getFilesKey()
+        fk.setProgress(self.getCurrentUser(), self.getCurrentNodeName(), shadowname, progress)
+        self.saveKey(fk)
+        print('+', end = " ", flush = True)
     
     def hasFiles(self) -> bool:
-        return os.path.exists( self.fileName(FilesKey.filename()) )
+        key = FilesKey()
+        return self.keyExists(key)
 
     def __zerofill(self, filename: str):
         sz = os.path.getsize(filename)
@@ -717,7 +847,7 @@ class KeyManager:
 
         return [signing__key, verify__key, public__key]
 
-    def __generate_seed(self, entropy: int):
+    def __generate_seed(self, entropy: int, len: int = 32):
         generator = prng.UhePrng()
 
         for i in range (0, entropy):
@@ -732,4 +862,67 @@ class KeyManager:
 
         print("")
         
-        return generator.string(32).encode(encoding = 'utf-8')
+        return generator.string(len).encode(encoding = 'utf-8')
+
+    def __generate_number_seed(self, entropy: int, len: int = 100, count: int = 25):
+        generator = prng.UhePrng()
+
+        for i in range (0, entropy):
+            rand = ''
+            with open('/dev/random', 'rb') as file:
+                rand = b64encode(file.read(1024)).decode('utf-8')
+                file.close()
+
+            generator.add_entropy(rand, str(uuid.getnode()))
+
+            print('+', end = " ", flush = True)
+
+        print("")
+        
+        return generator.numbers(len, count)
+
+    def __generate_word_seed(self, entropy: int, count: int = 25):
+        filename = os.path.dirname(__file__) + "/../data/words"
+
+        f = open(filename, "r")
+        words = f.read()
+        f.close()
+        words = words.splitlines()
+
+        seed = self.__generate_number_seed(entropy, len(words), count)
+
+        w = []
+
+        for num in seed:
+            w.append(words[num])
+
+        return w
+
+    def KeyFromSeed(self, seed: str):
+        generator = prng.UhePrng()
+
+        generator.seed = seed
+        numbers = generator.generate(255, 17)
+
+        b = b''
+
+        for num in numbers:
+            b += num.to_bytes(1)
+
+        return b64encode(b).decode(encoding = 'utf-8')
+
+    def initSettings(self):
+        key = SettingsKey()
+        self.initKey(key)
+
+    def getSettingsKey(self):
+        skey = SettingsKey()
+        self.loadKey(skey)
+        return skey
+
+    def getDefaultEntrophy(self) -> int:
+        return self.getSettingsKey().getEntrophy()
+
+    def getDefaultCipher(self) -> int:
+        return self.getSettingsKey().getCipher()
+

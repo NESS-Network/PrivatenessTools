@@ -1,2 +1,2 @@
 #!/usr/bin/bash
-python3 tree.py $1 $2 $3
+python3 tree.py "$@"

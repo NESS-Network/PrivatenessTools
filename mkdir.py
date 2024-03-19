@@ -33,8 +33,8 @@ class DIR:
 
             try:
                 if ns.joined(km.getCurrentNodeName()):
-                    km.mkdir(parent_id, name)
-                    print(" *** Directory {} created".format(name))
+                    id = km.mkdir(parent_id, name)
+                    print(" *** Directory with name: {} and ID {} created".format(name, id))
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")

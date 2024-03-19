@@ -1,2 +1,2 @@
 #!/usr/bin/bash
-python3 upload.py $1 $2 $3
+python3 upload.py "$@"

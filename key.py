@@ -20,7 +20,7 @@ from framework.Container import Container
 from NessKeys.cryptors.Salsa20 import Salsa20
 
 from NessKeys.exceptions.KeyIndexException import KeyIndexException
-from NessKeys.exceptions.LeafBuildException import LeafBuildException
+from NessKeys.JsonChecker.exceptions.LeafBuildException import LeafBuildException
 from NessKeys.exceptions.CrcCheck import CrcCheck
 
 import getpass
@@ -154,7 +154,7 @@ class Key:
                 return False
 
             try:
-                km.packKeys(keys.split(','), packet_keyfile, password)
+                km.packKeysPassword(keys.split(','), packet_keyfile, password)
             except LeafBuildException as e:
                 print("File format error: \"{}\" path: {}".format(e.msg, e.path))
 
@@ -164,7 +164,7 @@ class Key:
             password = getpass.getpass("Type password:")
 
             try:
-                km.unpackKeys(sys.argv[2], password)
+                km.unpackKeysPassword(sys.argv[2], password)
             except LeafBuildException as e:
                 print("File format error: \"{}\" path: {}".format(e.msg, e.path))
             except CrcCheck as e:

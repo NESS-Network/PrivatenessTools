@@ -1,6 +1,6 @@
 from NessKeys.keys.MyNodes import MyNodes
 from NessKeys.keys.Nodes import Nodes
-from NessKeys.keys.UserLocal import UserLocal
+from NessKeys.keys.Users import Users
 from NessKeys.keys.Directories import Directories as DirectoriesKey
 from NessKeys.keys.Files import Files as FilesKey
 
@@ -12,6 +12,7 @@ import json
 from ness.NessAuth import NessAuth
 import math
 import os
+import time
 import requests
 from prettytable import PrettyTable
 import humanize
@@ -20,16 +21,22 @@ from NessKeys.CryptorMaker import CryptorMaker
 from NessKeys.BlockCryptor import BlockCryptor
 from NessKeys.interfaces.output import output as ioutput
 
+from framework.GLOBAL import GLOBAL
+
 class files:
     cipher_type = 'salsa20'
     block_size = 1024**2
 
-    def __init__(self, localUserKey: UserLocal, nodes: Nodes, myNodes: MyNodes, filesKey: FilesKey, directoriesKey: DirectoriesKey, output: ioutput):
-        self.localUserKey = localUserKey
+    def __init__(self, Users: Users, nodes: Nodes, myNodes: MyNodes, filesKey: FilesKey, directoriesKey: DirectoriesKey, output: ioutput):
+        self.Users = Users
         self.nodes = nodes
         self.myNodes = myNodes
 
-        self.node_name = self.myNodes.getCurrentNode()
+        current_node = self.myNodes.getCurrentNode()
+        self.username = current_node[0]
+        self.node_name = current_node[1]
+
+        self.node = self.myNodes.findNode(self.username, self.node_name)
 
         self.auth = NessAuth()
 
@@ -38,9 +45,13 @@ class files:
 
         self.output = output
 
+    
+    def fileExists(self, shadowname: str):
+        pass
+
 
     def dir(self):
-        myNode = self.myNodes.findNode(self.node_name)
+        myNode = self.myNodes.findNode(self.username, self.node_name)
         currentNode = self.nodes.findNode(self.node_name)    
         
         if currentNode == False:
@@ -54,7 +65,7 @@ class files:
             url, 
             'test', 
             currentNode['public'], 
-            self.localUserKey.getPrivateKey(), 
+            self.Users.getPrivateKey(), 
             shadowname)
 
         if result['result'] == 'error':
@@ -64,7 +75,7 @@ class files:
                 files = json.loads(
                     self.auth.decrypt_two_way_result(
                         result, 
-                        self.localUserKey.getPrivateKey()))['files']
+                        self.Users.getPrivateKey()))['files']
 
                 return files
             else:
@@ -75,7 +86,7 @@ class files:
         return True
 
     def upload(self, filepath: str, file_shadowname: str):
-        myNode = self.myNodes.findNode(self.node_name)
+        myNode = self.myNodes.findNode(self.username, self.node_name)
         currentNode = self.nodes.findNode(self.node_name) 
         filename = os.path.basename(filepath)  
         
@@ -90,7 +101,7 @@ class files:
             url, 
             'test', 
             currentNode['public'], 
-            self.localUserKey.getPrivateKey(), 
+            self.Users.getPrivateKey(), 
             shadowname, 
             {'filename': self.auth.encrypt(file_shadowname, currentNode['public'])})
         
@@ -103,7 +114,7 @@ class files:
 
                 fileinfo = json.loads(self.auth.decrypt_two_way_result(
                     result, 
-                    self.localUserKey.getPrivateKey()))
+                    self.Users.getPrivateKey()))
 
                 uploaded = fileinfo['size']
                 file_size = os.path.getsize(filepath)
@@ -113,6 +124,8 @@ class files:
                     return True
 
                 blocks = math.ceil((file_size - uploaded) / self.block_size)
+                blocks_total = math.ceil(file_size / self.block_size)
+                blocks_uploaded = math.ceil(uploaded / self.block_size)
                 url = currentNode['url'] + "/files/append/" + fileinfo['id']
                 # self.output.line(fileinfo)
 
@@ -121,18 +134,29 @@ class files:
                 self.output.line("Uploading file from " + filepath)
 
                 for i in range(blocks):
+                    if GLOBAL.halt:
+                        file.close()
+                        print("* Upload stopped *")
+                        GLOBAL.fn_halt()
+                        exit()
+
+                    if GLOBAL.fn_paused():
+                        file.close()
+                        print("* Upload Paused *")
+                        exit()
+
                     file.seek(uploaded + (self.block_size * i))
                     data = file.read(self.block_size)
 
                     result = self.auth.post_data_by_auth_id(
                         data, 
                         url, 
-                        self.localUserKey.getPrivateKey(), 
+                        self.Users.getPrivateKey(), 
                         currentNode['url'], 
                         currentNode['nonce'], 
-                        self.localUserKey.getUsername(), 
+                        self.Users.getUsername(), 
                         shadowname, 
-                        self.localUserKey.getNonce())
+                        self.Users.getNonce())
 
                     if result['result'] == 'error':
                         self.output.line("")
@@ -140,9 +164,14 @@ class files:
                         self.output.line(result['error'])
                         return False
                     else:
-                        self.output.out("+")
+                        if (blocks_uploaded + i) > 0:
+                            GLOBAL.fn_progress(round((blocks_uploaded + i)*100/blocks_total))
+                        # self.output.out("+")
+                    # time.sleep(1)
 
                 file.close()
+
+                GLOBAL.fn_progress(100)
 
                 self.output.line ('')
                 self.output.line (" *** UPLOADED *** ")
@@ -156,7 +185,7 @@ class files:
         return True
 
     def __fileinfo(self, file_id: str):
-        myNode = self.myNodes.findNode(self.node_name)
+        myNode = self.myNodes.findNode(self.username, self.node_name)
         currentNode = self.nodes.findNode(self.node_name) 
         
         if currentNode == False:
@@ -169,7 +198,7 @@ class files:
         result = self.auth.get_by_two_way_encryption(
             url, 'test', 
             currentNode['public'], 
-            self.localUserKey.getPrivateKey(), 
+            self.Users.getPrivateKey(), 
             shadowname, 
             {'file_id': file_id})
 
@@ -179,11 +208,11 @@ class files:
         else:
             if self.auth.verify_two_way_result(currentNode['verify'], result):
 
-                fileinfo = json.loads(self.auth.decrypt_two_way_result(result, self.localUserKey.getPrivateKey()))
+                fileinfo = json.loads(self.auth.decrypt_two_way_result(result, self.Users.getPrivateKey()))
 
-                fileinfo['dl'] = currentNode['url'] + "/files/download/" + shadowname + "/" + fileinfo['id'] + "/" + self.auth.auth_id(self.localUserKey.getPrivateKey(), currentNode['url'], currentNode["nonce"], self.localUserKey.getUsername(), self.localUserKey.getNonce())
+                fileinfo['dl'] = currentNode['url'] + "/files/download/" + shadowname + "/" + fileinfo['id'] + "/" + self.auth.auth_id(self.Users.getPrivateKey(), currentNode['url'], currentNode["nonce"], self.Users.getUsername(), self.Users.getNonce())
 
-                fileinfo['pub'] = currentNode['url'] + "/files/pub/" + fileinfo['id'] + "-" + shadowname + "-" + self.auth.alternative_id(self.localUserKey.getPrivateKey(), currentNode['url'], currentNode["nonce"], self.localUserKey.getUsername(), self.localUserKey.getNonce())
+                fileinfo['pub'] = currentNode['url'] + "/files/pub/" + fileinfo['id'] + "-" + shadowname + "-" + self.auth.alternative_id(self.Users.getPrivateKey(), currentNode['url'], currentNode["nonce"], self.Users.getUsername(), self.Users.getNonce())
 
                 return fileinfo
             else:
@@ -197,7 +226,7 @@ class files:
     def fileinfo(self, shadowname: str):
         dir = self.dir()
         info_node = self. __fileinfo(dir[shadowname]['id'])
-        info_local = self.filesKey.getAllFiles(self.node_name)[shadowname]
+        info_local = self.filesKey.getAllFiles(self.username, self.node_name)[shadowname]
 
         fileinfo = {
             'id': info_node['id'],
@@ -205,7 +234,7 @@ class files:
             'cipher': info_local['cipher-type'],
             'key': info_local['cipher'],
             'shadowname': shadowname,
-            'status': self.__status(info_local['status']),
+            'status': self.__status(info_local),
             'size_local': info_local['size'],
             'size_remote': humanize.naturalsize(info_node['size']),
             'filepath': info_local['filepath'],
@@ -218,7 +247,7 @@ class files:
         return fileinfo
 
     def quota(self):
-        myNode = self.myNodes.findNode(self.node_name)
+        myNode = self.myNodes.findNode(self.username, self.node_name)
         currentNode = self.nodes.findNode(self.node_name) 
         
         if currentNode == False:
@@ -228,7 +257,7 @@ class files:
 
         url = currentNode['url'] + "/files/quota"
 
-        result = self.auth.get_by_two_way_encryption(url, 'test', currentNode['public'], self.localUserKey.getPrivateKey(), shadowname)
+        result = self.auth.get_by_two_way_encryption(url, 'test', currentNode['public'], self.Users.getPrivateKey(), shadowname)
 
         if result['result'] == 'error':
             self.output.line(" ~~~ quota command FAILED ~~~ ")
@@ -236,7 +265,7 @@ class files:
         else:
             if self.auth.verify_two_way_result(currentNode['verify'], result):
                 print(" *** User file storage quota *** ")
-                quota = json.loads(self.auth.decrypt_two_way_result(result, self.localUserKey.getPrivateKey()))
+                quota = json.loads(self.auth.decrypt_two_way_result(result, self.Users.getPrivateKey()))
                 quota = quota['quota']
 
                 t = PrettyTable(['Param', 'value'])
@@ -255,7 +284,7 @@ class files:
         return True
 
     def __download(self, file_id: str, real_filename: str, path: str = ''):
-        myNode = self.myNodes.findNode(self.node_name)
+        myNode = self.myNodes.findNode(self.username, self.node_name)
         currentNode = self.nodes.findNode(self.node_name)    
         url_dl = currentNode['url'] + "/files/download/" + file_id
         
@@ -276,29 +305,47 @@ class files:
 
         size = fileinfo['size']
 
-        f = open(filename, 'ab')
+        f = open(real_filename, 'ab')
         pos = f.tell()
-        # self.output.line(pos)
+        # print (size, pos, filename, real_filename)
+        blocks_downloaded = round(pos / self.block_size)
 
         headers = {'Range': 'bytes=' + str(pos) + '-'}
 
         responce = self.auth.get_responce_by_auth_id(
             url_dl, 
-            self.localUserKey.getPrivateKey(), 
+            self.Users.getPrivateKey(), 
             currentNode['url'], 
             currentNode['nonce'], 
-            self.localUserKey.getUsername(), 
+            self.Users.getUsername(), 
             shadowname, 
-            self.localUserKey.getNonce(), 
+            self.Users.getNonce(), 
             headers)
         # self.output.line(responce.status_code)
+        i = 0
         for block in responce.iter_content(chunk_size = self.block_size):
+            if GLOBAL.halt:
+                f.close()
+                print("* Download stopped *")
+                GLOBAL.fn_halt()
+                exit()
+
+            if GLOBAL.fn_paused():
+                f.close()
+                print("* Download Paused *")
+                exit()
+                
             f.write(block)
-            self.output.out("+")
+            GLOBAL.fn_progress( round( ((blocks_downloaded + i) * self.block_size * 100) / size ) )
+            i += 1
+
+            # time.sleep(1)
+
+        GLOBAL.fn_progress(100)
 
         f.close()
 
-        os.rename(filename, real_filename)
+        # os.rename(filename, real_filename)
 
         self.output.line("")
         self.output.line(" *** DOWNLOAD OK *** ")
@@ -306,7 +353,7 @@ class files:
         return True
 
     def __remove(self, file_id: str):
-        myNode = self.myNodes.findNode(self.node_name)
+        myNode = self.myNodes.findNode(self.username, self.node_name)
         currentNode = self.nodes.findNode(self.node_name)
         
         if currentNode == False:
@@ -320,7 +367,7 @@ class files:
             url, 
             'test', 
             currentNode['public'], 
-            self.localUserKey.getPrivateKey(), 
+            self.Users.getPrivateKey(), 
             shadowname,
             {'file_id': file_id})
         
@@ -339,13 +386,13 @@ class files:
 
 
     def download(self, shadowname: str, path: str = ''):
-        file = self.filesKey.getFile(self.node_name, shadowname)
+        file = self.filesKey.getFile(self.username, self.node_name, shadowname)
         dir = self.dir()
 
         if shadowname in dir:
 
-            if file['cipher-type'] != '':          
-                decr_path = os.getcwd() + '/encrypted/'
+            if shadowname != file['filename']:          
+                decr_path = os.getcwd() + '/_dec/'
                 self.__download(dir[shadowname]['id'], file['filename'], decr_path)
             else:
                 self.__download(dir[shadowname]['id'], file['filename'], path)
@@ -366,29 +413,30 @@ class files:
 
 
     def removeLocal(self, shadowname: str):
-        file = self.filesKey.getFile(self.node_name, shadowname)
+        file = self.filesKey.getFile(self.username, self.node_name, shadowname)
         if os.path.exists(file['filepath']):
             os.remove(file['filepath'])
 
-    def __status(self, s: chr):
-        if s == 'c':
+    def __status(self, file: dict):
+        if file['status'] == 'c':
             return 'Created'
-        elif s == 'e':
-            return 'Encrypting'
-        elif s == 'u':
-            return 'Uploading'
-        elif s == 'n':
+        elif file['status'] == 'e':
+            return 'Encrypting ({}%)'.format(file['progress'])
+        elif file['status'] == 'u':
+            return 'Uploading ({}%)'.format(file['progress'])
+        elif file['status'] == 'n':
             return 'On Node'
-        elif s == 'w':
-            return 'Downloading'
-        elif s == 'd':
-            return 'Decrypting'
+        elif file['status'] == 'w':
+            return 'Downloading ({}%)'.format(file['progress'])
+        elif file['status'] == 'd':
+            return 'Decrypting ({}%)'.format(file['progress'])
 
 
     def ls(self):
-        myNode = self.myNodes.findNode(self.node_name)
+        myNode = self.myNodes.findNode(self.username, self.node_name)
         currentNode = self.nodes.findNode(self.node_name)
-        currentDir = self.directoriesKey.getCurrentDir(self.node_name)
+        currentDir = self.directoriesKey.getCurrentDir(self.username, self.node_name)
+        currentDirName = self.directoriesKey.getCurrentName(self.username, self.node_name)
         
         if currentNode == False:
             raise NodeNotFound(self.node_name)
@@ -398,26 +446,29 @@ class files:
         dir = self.dir()
 
         if dir != False:
-            t = PrettyTable(['Shadowname', 'Filename', 'Size', 'Cipher', 'Status', 'Filepath'])
+            t = PrettyTable(['Shadowname', 'Filename', 'Size', 'Status', 'Share'])
             t.align = 'l'
-            files = self.filesKey.getFiles(self.node_name, currentDir)
-            directories = self.directoriesKey.ls(self.node_name)
+            files = self.filesKey.getFiles(self.username, self.node_name, currentDir)
+            directories = self.directoriesKey.ls(self.username, self.node_name)
             
             for id in directories:
-                t.add_row([id, '[' + directories[id]['name'] + ']', '', '', '', ''])
+                t.add_row([id, '[' + directories[id]['name'] + ']', '', '', ''])
 
             for shadowname in files:
-                ffl = files[shadowname]
+                file = files[shadowname]
                 if shadowname in dir:
                     dirf = dir[shadowname]
 
-                    # pub = currentNode['url'] + "/files/pub/" + dirf['id'] + "-" + node_shadowname + "-" + self.auth.alternative_id(self.localUserKey.getPrivateKey(), currentNode['url'], currentNode["nonce"], self.localUserKey.getUsername(), self.localUserKey.getNonce())
+                    if shadowname == file['filename']:
+                        pub = currentNode['url'] + "/files/pub/" + dirf['id'] + "-" + node_shadowname + "-" + self.auth.alternative_id(self.Users.getPrivateKey(), currentNode['url'], currentNode["nonce"], self.Users.getUsername(), self.Users.getNonce())
+                    else:
+                        pub = "-"
 
-                    t.add_row([shadowname, ffl['filename'], humanize.naturalsize(dirf['size']), ffl['cipher-type'], self.__status(ffl['status']), ffl['filepath']])
+                    t.add_row([shadowname, file['filename'], humanize.naturalsize(dirf['size']), self.__status(file), pub])
                 else:
-                    t.add_row([shadowname, ffl['filename'], '-', ffl['cipher-type'], self.__status(ffl['status']), ffl['filepath']])
+                    t.add_row([shadowname, file['filename'], '-', self.__status(file), '-'])
 
-            self.output.line(" *** Contents of {}: {}  ".format(currentDir, self.directoriesKey.path(self.node_name)))
+            self.output.line(" *** Contents of {}  ".format(currentDirName))
             self.output.line(t)
         else:
             self.output.line(" ~~~ list command FAILED ~~~ ")
@@ -441,15 +492,52 @@ class files:
             self.output.line(" ~~~ list command FAILED ~~~ ")
             self.output.line(self.err)
 
+    def jobs(self):
+        myNode = self.myNodes.findNode(self.username, self.node_name)
+        currentNode = self.nodes.findNode(self.node_name)
+        
+        if currentNode == False:
+            raise NodeNotFound(self.node_name)
+
+        dir = self.dir()
+
+        node_shadowname = myNode['shadowname']
+
+        t = PrettyTable(['Action', 'Shadowname', 'Filename', 'Size', 'Status', 'Share'])
+        t.align = 'l'
+        files = self.filesKey.getAllFiles(self.username, self.node_name)
+
+        for shadowname in files:
+            file = files[shadowname]
+            if file['paused'] or not file['progress'] in (0, 100):
+
+                if file['paused']:
+                    action = '[  ||| PAUSED ||| ]'
+                else:
+                    action = '[ >>> RUNNING >>> ]'
+
+                if shadowname == file['filename'] and shadowname in dir:
+                    dirf = dir[shadowname]
+                    pub = currentNode['url'] + "/files/pub/" + dirf['id'] + "-" + node_shadowname + "-" + self.auth.alternative_id(self.Users.getPrivateKey(), currentNode['url'], currentNode["nonce"], self.Users.getUsername(), self.Users.getNonce())
+                else:
+                    pub = "-"
+
+                if shadowname in dir:
+                    dirf = dir[shadowname]
+                    t.add_row([action, shadowname, file['filename'], humanize.naturalsize(dirf['size']), self.__status(file), pub])
+                else:
+                    t.add_row([action, shadowname, file['filename'], '-', self.__status(file), '-'])
+
+        self.output.line(t)
 
     def encrypt(self, filepath: str, shadowname: str):
-        file = self.filesKey.getFile(self.node_name, shadowname)
-        cryptor = CryptorMaker.make(file['cipher-type'])
+        file = self.filesKey.getFile(self.username, self.node_name, shadowname)
+        cryptor = CryptorMaker.make(self.node['cipher'])
 
         filename = os.path.basename(filepath)
-        filename_out = os.getcwd() + '/encrypted/' + filename
+        filename_out = os.getcwd() + '/_enc/' + filename
         
-        bc = BlockCryptor(cryptor, bytes(file['cipher'][:cryptor.getBlockSize()], 'utf8'), self.output, self.block_size)
+        bc = BlockCryptor(cryptor, bytes(self.node['key'][:cryptor.getBlockSize()], 'utf8'), self.output, self.block_size)
 
         self.output.line("Encrypting file from {} to {}".format(filepath, filename_out))
         bc.encrypt(filepath, filename_out)
@@ -460,13 +548,13 @@ class files:
 
 
     def decrypt(self, shadowname: str, path: str = ''):
-        file = self.filesKey.getFile(self.node_name, shadowname)
+        file = self.filesKey.getFile(self.username, self.node_name, shadowname)
         dir = self.dir()
 
         if shadowname in dir:
-            cryptor = CryptorMaker.make(file['cipher-type'])            
+            cryptor = CryptorMaker.make(self.node['cipher'])            
             
-            decr_path = os.getcwd() + '/encrypted/'
+            decr_path = os.getcwd() + '/_dec/'
 
             if path != '' and path[-1] != '/':
                 path = path + '/'
@@ -474,7 +562,7 @@ class files:
             from_filename = decr_path + file['filename']
             to_filename = path + file['filename']
             
-            bc = BlockCryptor(cryptor, bytes(file['cipher'][:cryptor.getBlockSize()], 'utf8'), self.output, self.block_size)
+            bc = BlockCryptor(cryptor, bytes(self.node['key'][:cryptor.getBlockSize()], 'utf8'), self.output, self.block_size)
 
             self.output.line("Decrypting file from {} to {}".format(from_filename, to_filename))
             bc.decrypt(from_filename, to_filename)
@@ -486,3 +574,9 @@ class files:
             return True
         else:
             return False
+
+    # def uploadEncrypt(self, shadowname: str, path: str):
+    #     pass
+
+    # def downloadDecrypt(self, shadowname: str, path: str):
+    #     pass

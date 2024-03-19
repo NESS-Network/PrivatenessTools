@@ -1,45 +1,75 @@
 from NessKeys.interfaces.NessKey import NessKey
 from NessKeys.interfaces.KeyMaker import KeyMaker
 
-from NessKeys.keys.Node import Node as NodeKey
-from NessKeys.keys.User import User as UserKey
-from NessKeys.keys.UserLocal import UserLocal
-from NessKeys.keys.Encrypted import Encrypted
+
+from NessKeys.keys.Backup import Backup
 from NessKeys.keys.BlockchainRPC import BlockchainRPC
+from NessKeys.keys.Faucet import Faucet
+from NessKeys.keys.Users import Users
+from NessKeys.keys.Node import Node
 from NessKeys.keys.Nodes import Nodes
 from NessKeys.keys.MyNodes import MyNodes
-from NessKeys.keys.Faucet import Faucet
-from NessKeys.exceptions.LeafBuildException import LeafBuildException
+from NessKeys.keys.Files import Files
+from NessKeys.keys.Directories import Directories
+from NessKeys.keys.Encrypted import Encrypted
 
 class KeyMakerNess(KeyMaker):
     def make(self, keydata: dict) -> NessKey:
-        if not("filedata" in keydata):
-            raise LeafBuildException("No filedata parameter", "/filedata")
 
-        filedata = keydata["filedata"]
-
-        if not ("vendor" in filedata and "type" in filedata):
-            raise LeafBuildException("No vendor|type in filedata parameter", "/filedata/*")
+        filedata = keydata['filedata']
 
         vendor = filedata['vendor']
         _type = filedata['type']
         _for = filedata['for']
 
-        if vendor == "Privateness" and _type == 'key' and _for == 'user':
-            return UserKey(keydata)
-        elif vendor == "Privateness" and _type == 'key' and _for == 'node':
-            return NodeKey(keydata)
-        elif vendor == "Privateness" and _type == 'key' and _for == 'user-local':
-            return UserLocal(keydata)
-        elif vendor == "Privateness" and _type == 'encrypted-keys':
-            return Encrypted(keydata)
+        if vendor == "Privateness" and _type == 'backup' and _for == 'backup':
+            key = Backup()
+            key.load(keydata)
+            return key
+
         elif vendor == "Privateness" and _type == 'config' and _for == 'blockchain':
-            return BlockchainRPC(keydata)
-        elif vendor == "Privateness" and _type == 'data' and _for == 'nodes-list':
-            return Nodes(keydata)
-        elif vendor == "Privateness" and _type == 'service' and _for == 'node':
-            return MyNodes(keydata)
+            key = BlockchainRPC()
+            key.load(keydata)
+            return key
+
         elif vendor == "Privateness" and _type == 'key' and _for == 'faucet':
-            return Faucet(keydata)
+            key = Faucet()
+            key.load(keydata)
+            return key
+
+        elif vendor == "Privateness" and _type == 'key' and _for == 'user':
+            key = Users()
+            key.load(keydata)
+            return key
+
+        elif vendor == "Privateness" and _type == 'key' and _for == 'node':
+            key = Node()
+            key.load(keydata)
+            return key
+
+        elif vendor == "Privateness" and _type == 'data' and _for == 'nodes-list':
+            key = Nodes()
+            key.load(keydata)
+            return key
+
+        elif vendor == "Privateness" and _type == 'service' and _for == 'node':
+            key = MyNodes()
+            key.load(keydata)
+            return key
+
+        elif vendor == "Privateness" and _type == 'service' and _for == 'files':
+            key = Files()
+            key.load(keydata)
+            return key
+
+        elif vendor == "Privateness" and _type == 'service' and _for == 'files-directories':
+            key = Directories()
+            key.load(keydata)
+            return key
+
+        elif vendor == "Privateness" and _type == 'encrypted-keys':
+            key = Encrypted()
+            key.load(keydata)
+            return key
 
         return False

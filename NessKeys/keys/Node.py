@@ -126,3 +126,30 @@ class Node(NessKey):
 
     def getMasterUser(self):
         return self.__master_user
+
+    def setTags(self, tags: str):
+        self.__tags = tags.split(',')
+
+    def setNonce(self, nonce: str):
+        self.__nonce = nonce
+
+    def setPrivateKey(self, private_key: str):
+        self.__private_key = private_key
+
+    def setPublicKey(self, public_key: str):
+        self.__public_key = public_key
+
+    def setVerifyKey(self, verify_key: str):
+        self.__verify_key = verify_key
+
+    def setUrl(self, url: str):
+        self.__url = url
+
+    def setNonve(self, nonce: str):
+        self.__nonce = nonce
+
+    def setTariff(self, tariff: str):
+        self.__tariff = tariff
+
+    def setMasterUser(self, master_user: str):
+        self.__master_user = master_user

@@ -53,10 +53,22 @@ class BlockchainRPC(NessKey):
         return "Privateness Blockchain Config"
 
     def filename():
-        return "blockchain-rpc.json"
+        return "blockchain-rpc.key.json"
 
     def getFilename(self):
         return BlockchainRPC.filename()
+
+    def setHost(self, host: str) -> str:
+        self.__host = host
+
+    def setPort(self, port: int) -> str:
+        self.__port = port
+
+    def setUser(self, user: str) -> str:
+        self.__user = user
+
+    def setPassword(self, password: str) -> str:
+        self.__password = password
 
     def getHost(self) -> str:
         return self.__host

@@ -8,6 +8,10 @@ import urllib.parse
 
 class Users(NessKey):
 
+    def __init__(self):
+        self.__current = False
+        self.__users = False
+
     def load(self, keydata: dict):
         map = {
             "filedata": {
@@ -74,7 +78,10 @@ class Users(NessKey):
         return "Privateness User Key <{}>".format(self.__current)
 
     def getFilename(self):
-        return urllib.parse.quote_plus(self.__current) + ".key.json"
+        return "users.key.json"
+
+    def filename():
+        return "users.key.json"
 
     def __wrm(self, user: dict):
         linesep = '\n'
@@ -87,7 +94,7 @@ class Users(NessKey):
 
         for sig in sigs:
             signatures += \
-                "{}<signature type=\"{}\">{}</signature>{}".format(tab3, sig, sigs[sig], linesep)
+                "{}<signature type=\"{}\">{}</siuserkeygnature>{}".format(tab3, sig, sigs[sig], linesep)
 
         worm = "<worm>" + linesep + \
             tab + "<user type=\"ness\" " \
@@ -104,26 +111,89 @@ class Users(NessKey):
 
         return worm
 
-    def getUsername(self):
+    def getCurrentUser(self) -> str:
         return self.__current
+
+    def getUsers(self):
+        return self.__users
+
+    def findUser(self, username: str):
+        if username in self.__users:
+            return self.__users[username]
+        else:
+            return False
 
     def getUser(self):
         return self.__users[self.__current]
 
+    def setCurrentUser(self, username: str):
+        if username in self.__users:
+            self.__current = username
+
+    def addNewUser(self, username: str, private_key: str, public_key: str, verify_key: str, nonce: str, tags: list):
+        if self.__users == False:
+            self.__users = {}
+
+        self.__current = username
+
+        if not self.__current in self.__users:
+            self.__users[self.__current] = {}
+
+        self.__users[self.__current]["username"] = username
+        self.__users[self.__current]["private"] = private_key
+        self.__users[self.__current]["public"] = public_key
+        self.__users[self.__current]["verify"] = verify_key
+        self.__users[self.__current]["nonce"] = nonce
+        self.__users[self.__current]["tags"] = tags
+        self.__users[self.__current]["signatures"] = {}
+
+    def getUsername(self):
+        return self.__users[self.__current]["username"]
+
+    def getPrivateKey(self, username: str = ''):
+        if username == '':
+            return self.__users[self.__current]["private"]
+        else:
+            return self.__users[username]["private"]
+
+    def getPublicKey(self, username: str = ''):
+        if username == '':
+            return self.__users[self.__current]["public"]
+        else:
+            return self.__users[username]["public"]
+
+    def getVerifyKey(self, username: str = ''):
+        if username == '':
+            return self.__users[self.__current]["verify"]
+        else:
+            return self.__users[username]["verify"]
+        
+    def getNonce(self, username: str = ''):
+        if username == '':
+            return self.__users[self.__current]["nonce"]
+        else:
+            return self.__users[username]["nonce"]
+
     def getTags(self):
         return self.__users[self.__current]["tags"]
 
-    def getNonce(self):
-        return self.__users[self.__current]["nonce"]
-
-    def getPrivateKey(self):
-        return self.__users[self.__current]["private"]
-
-    def getPublicKey(self):
-        return self.__users[self.__current]["public"]
-
-    def getVerifyKey(self):
-        return self.__users[self.__current]["verify"]
-
     def getSignatures(self):
         return self.__users[self.__current]["signatures"]
+
+    def setPrivateKey(self, private_key: str):
+        self.__users[self.__current]["private"] = private_key
+
+    def setPublicKey(self, public_key: str):
+        self.__users[self.__current]["public"] = public_key
+
+    def setVerifyKey(self, verify_key: str):
+        self.__users[self.__current]["verify"] = verify_key
+        
+    def setNonce(self, nonce: str,):
+        self.__users[self.__current]["nonce"] = nonce
+
+    def setTags(self, tags: list):
+        self.__users[self.__current]["tags"] = tags
+
+    def addSignature(self, name: str, sig: str):
+        self.__users[self.__current]["signatures"][name] = sig

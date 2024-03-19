@@ -15,7 +15,6 @@ class BlockchainRPC:
         self.port = port
         self.login = login
         self.password = password
-        return
 
     def get_info(self):
         return self.__method("getinfo", [])
@@ -38,11 +37,13 @@ class BlockchainRPC:
         payload = {
             "method": method,
             "params": params,
-            "jsonrpc": "1.0",
+            "jsonrpc": "2.0",
             "id": 0,
         }
 
+        response = requests.post(url, json=payload)
         response = requests.post(url, json=payload).json()
+
         return response
 
     def showResource(self, name):
