@@ -614,30 +614,47 @@ class KeyManager:
         key = DirectoriesKey()
         return self.keyExists(key)
 
-    def initFiles(self):
+    def refreshFilesKey(self):
+        node_name = self.getCurrentNodeName()
+        username = self.getCurrentUser()
+
+        if node_name != False:
+            key = self.getFilesKey()
+            key.initFiles(username, node_name)
+            self.saveKey(key)
+
+    def initFilesKey(self):
         key = FilesKey()
         self.initKey(key)
-
-    def initDirectories(self):
-        key = DirectoriesKey()
-        self.initKey(key)
-
-    def initFilesAndDirectories(self):
-        self.initDirectories()
-        self.initFiles()
 
         node_name = self.getCurrentNodeName()
         username = self.getCurrentUser()
 
         if node_name != False:
-            dk = self.getDirectoriesKey()
-            dk.initDirectories(username, node_name)
+            key.initFiles(username, node_name)
 
-            fk = self.getFilesKey()
-            fk.initFiles(username, node_name)
+        self.saveKey(key)
 
-            self.saveKey(dk)
-            self.saveKey(fk)
+    def refreshDirectoriesKey(self):
+        node_name = self.getCurrentNodeName()
+        username = self.getCurrentUser()
+
+        if node_name != False:
+            key = self.getDirectoriesKey()
+            key.initDirectories(username, node_name)
+            self.saveKey(key)
+
+    def initDirectoriesKey(self):
+        key = DirectoriesKey()
+        self.initKey(key)
+
+        node_name = self.getCurrentNodeName()
+        username = self.getCurrentUser()
+
+        if node_name != False:
+            key.initDirectories(username, node_name)
+
+        self.saveKey(key)
 
     def getFilesKey(self) -> FilesKey:
         fk = FilesKey()
@@ -648,11 +665,6 @@ class KeyManager:
         dk = DirectoriesKey()
         self.loadKey(dk)
         return dk
-
-    def initKeys(self):
-        self.initSettings()
-        self.initMyNodes()
-        self.initFilesAndDirectories()
 
     def isFile(self, ID: str) -> bool:
         return not ID.isnumeric()

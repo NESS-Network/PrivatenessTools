@@ -8,6 +8,7 @@ from NessKeys.exceptions.NodesFileDoesNotExist import NodesFileDoesNotExist
 from NessKeys.exceptions.NodeNotFound import NodeNotFound
 from NessKeys.exceptions.NodeError import NodeError
 from NessKeys.exceptions.AuthError import AuthError
+from NessKeys.exceptions.FileNotExist import FileNotExist
 
 import requests
 from prettytable import PrettyTable
@@ -29,15 +30,14 @@ class Noder:
         elif len(sys.argv) == 2:
             file_shadowname = sys.argv[1]
 
-            km = Container.KeyManager()
-            ns = Container.NodeService()
-            fs = Container.FilesService()
-        
-            try:
-                if ns.joined(km.getCurrentNodeName()):
-                    fs.remove(file_shadowname)
-                    km.removeFile(file_shadowname)
+            fm = Container.FileManager()
+            fm.initKeys()
 
+            try:
+                fm.remove(file_shadowname)
+
+            except FileNotExist as e:
+                print("File {} not found".format(e.filename))
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
                 print("RUN python node.py set node-url")
@@ -54,19 +54,14 @@ class Noder:
         elif len(sys.argv) == 3 and sys.argv[1].lower() == 'local':
             file_shadowname = sys.argv[2]
 
-            km = Container.KeyManager()
-            ns = Container.NodeService()
-            fs = Container.FilesService()
-        
-            try:
-                if ns.joined(km.getCurrentNodeName()):
-                    if km.getFile(file_shadowname) == False:
-                        print("Shadowname {} not found".format(file_shadowname))
-                        exit()
-                    
-                    fs.removeLocal(file_shadowname)
-                    km.clearFilePath(file_shadowname)
+            fm = Container.FileManager()
+            fm.initKeys()
 
+            try:
+                fm.removeLocal(file_shadowname)
+
+            except FileNotExist as e:
+                print("File {} not found".format(e.filename))
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
                 print("RUN python node.py set node-url")

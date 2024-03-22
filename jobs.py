@@ -46,9 +46,12 @@ class Jobs:
         elif ARGS.args(['ls']) or ARGS.args(['list']):
 
             fm = Container.FileManager()
+            fm.initKeys()
+            fm.initKeys()
             
             try:
                 fm.jobs()
+                fm.saveKeys()
 
             except FileNotExist as e:
                 print("File '{}' does not exist".format(e.filename))
@@ -72,9 +75,11 @@ class Jobs:
             shadowname = sys.argv[2]
 
             fm = Container.FileManager()
+            fm.initKeys()
             
             try:
                 fm.pauseJob(shadowname)
+                fm.saveKeys()
 
             except FileNotExist as e:
                 print("File '{}' does not exist".format(e.filename))
@@ -99,9 +104,11 @@ class Jobs:
             shadowname = sys.argv[2]
 
             fm = Container.FileManager()
+            fm.initKeys()
             
             try:
                 fm.runJob(shadowname)
+                fm.saveKeys()
 
             except FileNotExist as e:
                 print("File '{}' does not exist".format(e.filename))

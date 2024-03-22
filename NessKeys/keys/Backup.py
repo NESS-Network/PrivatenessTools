@@ -5,8 +5,8 @@ import json
 
 class Backup(NessKey):
 
-    __files_id = ""
-    __dirs_id = ""
+    __files_shadowname = ""
+    __dirs_shadowname = ""
     __cipher = "aes"
 
     def load(self, keydata: dict):
@@ -21,8 +21,8 @@ class Backup(NessKey):
             "cipher": str,
             "seed": str,
             "key": str,
-            "files_id": str,
-            "dirs_id": str
+            "files_shadowname": str,
+            "dirs_shadowname": str
         }
 
         JsonChecker.check('Backup key check', keydata, map)
@@ -30,8 +30,8 @@ class Backup(NessKey):
         self.__seed = keydata["seed"]
         self.__key = keydata["key"]
 
-        self.__files_id = keydata["files_id"]
-        self.__dirs_id = keydata["dirs_id"]
+        self.__files_shadowname = keydata["files_shadowname"]
+        self.__dirs_shadowname = keydata["dirs_shadowname"]
 
         self.__type = keydata["type"]
         self.__address = keydata["address"]
@@ -50,8 +50,8 @@ class Backup(NessKey):
             "cipher": self.__cipher,
             "seed": self.__seed,
             "key": self.__key,
-            "files_id": self.__files_id,
-            "dirs_id": self.__dirs_id
+            "files_shadowname": self.__files_shadowname,
+            "dirs_shadowname": self.__dirs_shadowname
         }
 
     def serialize(self) -> str:
@@ -84,11 +84,11 @@ class Backup(NessKey):
     def getCipher(self):
         return self.__cipher
 
-    def getFilesID(self):
-        return self.__files_id
+    def getFilesShadowname(self):
+        return self.__files_shadowname
 
-    def getDirsID(self):
-        return self.__dirs_id
+    def getDirsShadowname(self):
+        return self.__dirs_shadowname
 
     def setSeed(self, seed: str):
         self.__seed = seed
@@ -102,8 +102,8 @@ class Backup(NessKey):
     def setAddress(self, address: str):
         self.__address = address
 
-    def setFilesID(self, files_id: str):
-        self.__files_id = files_id
+    def setFilesShadowname(self, files_shadowname: str):
+        self.__files_shadowname = files_shadowname
 
-    def setDirsID(self, dirs_id: str):
-        self.__dirs_id = dirs_id
+    def setDirsShadowname(self, dirs_shadowname: str):
+        self.__dirs_shadowname = dirs_shadowname

@@ -27,16 +27,12 @@ class DIR:
         elif len(sys.argv) == 2:
             ID = int(sys.argv[1])
 
-            km = Container.KeyManager()
-            ns = Container.NodeService()
-            fs = Container.FilesService()
-        
+            fm = Container.FileManager()
+            fm.initKeys()
+            
             try:
-                if ns.joined(km.getCurrentNodeName()):
-                    if km.getDirectory(ID) != False:
-                        km.cd(ID)
-                    else:
-                        print("Directory ID {} not found".format(ID))
+                fm.cd(ID)
+                fm.saveKeys()
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
@@ -50,6 +46,8 @@ class DIR:
                 print("Error on remote node: " + e.error)
             except AuthError as e:
                 print("Responce verification error")
+            except NodeNotSelected as e:
+                print("Current node is not set or not joined, try: python node.py sel <node_url>")
 
         else:
             self.__manual()

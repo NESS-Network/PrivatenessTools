@@ -26,25 +26,24 @@ class DIR:
             self.__manual()
 
         elif len(sys.argv) == 3:
+            fm = Container.FileManager()
             km = Container.KeyManager()
-            ns = Container.NodeService()
+            fm.initKeys()
 
             try:
                 ID = sys.argv[1]
                 parent_id = int(sys.argv[2])
+
+                fm.move(ID, parent_id)
+
+                if km.isFile(ID):
+                    name = ID
+                else:
+                    dir = km.getDirectory(int(ID))
+                    name = dir['name']
+
                 dir = km.getDirectory(parent_id)
-
-                if dir == False:
-                    print("Directory {} not found".format(parent_id))
-                    exit(0)
-
-                if ns.joined(km.getCurrentNodeName()):
-                    if km.isFile(ID):
-                        km.moveFile(ID, parent_id)
-                    else:
-                        km.moveDir(int(ID), parent_id)
-
-                    print(' *** Moved to ' + dir['name'])
+                print(' *** {} moved to {}'.format(name, dir['name']))
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
