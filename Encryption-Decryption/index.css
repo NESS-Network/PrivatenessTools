@@ -1,0 +1,122 @@
+
+        /* Laptops */
+@media only screen and (min-width: 1025px) and (max-width: 1280px) {
+   button {
+                cursor: pointer;
+            }
+
+            button:hover {
+                background-color: #1F4E79;
+            }
+
+            input:hover {
+                border: 3px solid slateblue;
+                border-radius: 6px;
+            }
+            
+            input {
+              padding: 14px;
+            }
+
+            .container {
+                align-items: center;
+            }
+
+            button {
+                padding-left: 4%;
+            }
+        }
+
+        /* Desktops */
+@media only screen and (min-width: 1281px) {
+           button {
+         cursor: pointer;
+           }
+
+            button:hover {
+                background-color: #1F4E79;
+            }
+
+            input:hover {
+                border: 3px solid slateblue;
+                border-radius: 6px;
+            }
+            
+            input {
+              padding: 15px;
+            }
+        }
+        
+
+button:active {
+            background-color: #1B4F73;
+        }
+ 
+h1 {
+      color: white;
+      text-align: center;
+      font-size: 2em;
+      background-color: green;
+      border-radius: 4px;
+}
+        
+input {
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+select, option {
+    cursor: pointer;
+}
+        
+
+
+.progress {
+    width: 100%;
+    height: 15px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    margin-top: 10px;
+    border-radius: 6px;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: #007bff;
+    border-radius: 5px;
+}
+
+#downloadLinks {
+    margin-top: 20px;
+}
+
+.container {
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 90%;
+    border-radius: 10px;
+    color: green;
+    box-shadow: 0 0 20px 5px rgba(0, 255, 0, 0.5);
+    background-color: #15202B;
+    text-align: center;
+ }
+        
+body {
+   background-color: #15202B;
+   color: #FFFFFF;
+ }
+
+button {
+   background-color: green;
+   color: #15202B;
+   font-weight: bold;
+   border: none;
+   margin-top: 4%;
+   margin-left: 1%;
+   color: white;
+   border-radius: 5px;
+   padding: 5px 15px;
+   cursor: pointer;
+ }             
+        
