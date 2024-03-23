@@ -26,6 +26,8 @@ class Lister:
 
         if len(sys.argv) == 1:
             fm = Container.FileManager()
+            fm.initKeys()
+            fm.saveKeys()
             
             try:
                 fm.ls()
@@ -47,10 +49,12 @@ class Lister:
 
         elif len(sys.argv) == 2 and sys.argv[1].lower() == 'raw':
             fm = Container.FileManager()
+            fm.initKeys()
+            fm.saveKeys()
             
             try:
                 fm.raw()
-
+                
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
                 print("RUN python node.py set node-url")

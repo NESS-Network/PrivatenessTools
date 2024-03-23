@@ -64,7 +64,7 @@ class Directories(NessKey):
             self.__directories[username] = {}
 
         if not node_name in self.__directories[username]:
-            self.__directories[username][node_name] = {0 : {'name': '', 'parent_id': 0}}
+            self.__directories[username][node_name] = {'0' : {'name': '', 'parent_id': 0}}
 
         if not username in self.__current:
             self.__current[username] = {}

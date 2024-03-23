@@ -35,23 +35,25 @@ class Noder:
                 if ns.joined(km.getCurrentNodeName()):
                     fileinfo = fs.fileinfo(file_shadowname)
 
-                    print(" *** fileinfo *** ")
+                    if fileinfo != False:
+                        print(" *** fileinfo *** ")
+                        t = PrettyTable(['Param', 'value'])
 
-                    t = PrettyTable(['Param', 'value'])
+                        t.add_row(["File ID", fileinfo['id']])
+                        t.add_row(["Filename", fileinfo['filename']])
+                        t.add_row(["Shadowname", fileinfo['shadowname']])
+                        t.add_row(["Status", fileinfo['status']])
+                        t.add_row(["Filesize (local)", fileinfo['size_local']])
+                        t.add_row(["Filesize (remote)", fileinfo['size_remote']])
+                        t.add_row(["Filepath (local)", fileinfo['filepath']])
+                        t.add_row(["Cipher", fileinfo['cipher']])
+                        t.add_row(["Encryption key", fileinfo['key']])
+                        t.add_row(["Public link", fileinfo['pub']])
 
-                    t.add_row(["File ID", fileinfo['id']])
-                    t.add_row(["Filename", fileinfo['filename']])
-                    t.add_row(["Shadowname", fileinfo['shadowname']])
-                    t.add_row(["Status", fileinfo['status']])
-                    t.add_row(["Filesize (local)", fileinfo['size_local']])
-                    t.add_row(["Filesize (remote)", fileinfo['size_remote']])
-                    t.add_row(["Filepath (local)", fileinfo['filepath']])
-                    t.add_row(["Cipher", fileinfo['cipher']])
-                    t.add_row(["Encryption key", fileinfo['key']])
-                    t.add_row(["Public link", fileinfo['pub']])
-
-                    t.align = 'l'
-                    print(t)
+                        t.align = 'l'
+                        print(t)
+                    else:
+                        print("File {} does not exist".format(file_shadowname))
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")

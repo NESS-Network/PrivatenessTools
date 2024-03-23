@@ -24,8 +24,10 @@ class Lister:
     def process(self):
 
         if len(sys.argv) == 1:
-            km = Container.KeyManager()
             fm = Container.FileManager()
+            km = Container.KeyManager()
+            fm.initKeys()
+
             try:
                 tree = fm.tree()
                 current_dir = km.getCurrentDir()
@@ -50,6 +52,7 @@ class Lister:
                             print_dir(dirs[id]['children'], level + 1)
 
                 print_dir(tree, 0)
+                fm.saveKeys()
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
@@ -65,8 +68,9 @@ class Lister:
                 print("Responce verification error")
 
         elif len(sys.argv) == 2 and sys.argv[1].lower() == 'files':
-            km = Container.KeyManager()
             fm = Container.FileManager()
+            km = Container.KeyManager()
+            fm.initKeys()
             
             try:
                 tree = fm.tree()
@@ -95,6 +99,7 @@ class Lister:
                                 print(fline)
 
                 print_dir(tree, 0)
+                fm.saveKeys()
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")

@@ -81,9 +81,11 @@ class Uploader:
                 filepath = sys.argv[1]
 
             fm = Container.FileManager()
+            fm.initKeys()
             
             try:
                 fm.upload(filepath)
+                fm.saveKeys()
 
             except FileNotExist as e:
                 print("File '{}' does not exist".format(e.filename))

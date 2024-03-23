@@ -7,6 +7,7 @@ from framework.ARGS import ARGS
 
 if ARGS.args(['auth', str, str]):
     import NessKeys.tests.auth
+    import NessKeys.tests.key_storage
     import NessKeys.tests.encrypted_storage
 else:
     print('Authentication test: python run-tests.py auth <username> <node URL>')

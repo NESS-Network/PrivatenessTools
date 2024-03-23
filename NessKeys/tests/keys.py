@@ -44,8 +44,8 @@ keydata = {
     "cipher": 'aes',
     "seed": rand_str(),
     "key": rand_text(),
-    "files_id": rand_str(),
-    "dirs_id": rand_str()
+    "files_shadowname": rand_str(),
+    "dirs_shadowname": rand_str()
 }
 
 keystr = json.dumps(keydata)

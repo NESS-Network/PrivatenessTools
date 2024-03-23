@@ -3,6 +3,7 @@ from NessKeys.keys.Nodes import Nodes
 from NessKeys.keys.Users import Users
 from NessKeys.keys.Directories import Directories as DirectoriesKey
 from NessKeys.keys.Files import Files as FilesKey
+from NessKeys.keys.Backup import Backup as BackupKey
 
 from NessKeys.exceptions.NodeNotFound import NodeNotFound
 from NessKeys.exceptions.NodeError import NodeError
@@ -19,6 +20,7 @@ import humanize
 
 from NessKeys.CryptorMaker import CryptorMaker
 from NessKeys.BlockCryptor import BlockCryptor
+from NessKeys.TextCryptor import TextCryptor
 from NessKeys.interfaces.output import output as ioutput
 
 from framework.GLOBAL import GLOBAL
@@ -27,7 +29,7 @@ class files:
     cipher_type = 'salsa20'
     block_size = 1024**2
 
-    def __init__(self, Users: Users, nodes: Nodes, myNodes: MyNodes, filesKey: FilesKey, directoriesKey: DirectoriesKey, output: ioutput):
+    def __init__(self, Users: Users, nodes: Nodes, myNodes: MyNodes, filesKey: FilesKey, directoriesKey: DirectoriesKey, backupKey: BackupKey, output: ioutput):
         self.Users = Users
         self.nodes = nodes
         self.myNodes = myNodes
@@ -43,11 +45,13 @@ class files:
         self.filesKey = filesKey
         self.directoriesKey = directoriesKey
 
+        self.backupKey = backupKey
+
         self.output = output
 
     
     def fileExists(self, shadowname: str):
-        pass
+        return self.fileinfo(shadowname) != False
 
 
     def dir(self):
@@ -225,14 +229,26 @@ class files:
 
     def fileinfo(self, shadowname: str):
         dir = self.dir()
+
+        if not shadowname in dir:
+            return False
+
         info_node = self. __fileinfo(dir[shadowname]['id'])
-        info_local = self.filesKey.getAllFiles(self.username, self.node_name)[shadowname]
+        all_files = self.filesKey.getAllFiles(self.username, self.node_name)
+
+        if shadowname in all_files:
+            info_local = all_files[shadowname]
+        else:
+            info_local = {
+                'filename': shadowname,
+                'size': 0,
+                'filepath': '',
+                'status': 'n',
+            }
 
         fileinfo = {
             'id': info_node['id'],
             'filename': info_local['filename'],
-            'cipher': info_local['cipher-type'],
-            'key': info_local['cipher'],
             'shadowname': shadowname,
             'status': self.__status(info_local),
             'size_local': info_local['size'],
@@ -575,8 +591,80 @@ class files:
         else:
             return False
 
-    # def uploadEncrypt(self, shadowname: str, path: str):
-    #     pass
+    def uploadEncryptString(self, data: str, file_shadowname: str):
+        myNode = self.myNodes.findNode(self.username, self.node_name)
+        currentNode = self.nodes.findNode(self.node_name)
+        
+        if currentNode == False:
+            raise NodeNotFound(self.node_name)
 
-    # def downloadDecrypt(self, shadowname: str, path: str):
-    #     pass
+        user_shadowname = myNode['shadowname']
+
+        url = currentNode['url'] + "/files/rewrite"
+
+        result = self.auth.get_by_two_way_encryption(
+            url, 
+            'test', 
+            currentNode['public'], 
+            self.Users.getPrivateKey(), 
+            user_shadowname, 
+            {'filename': self.auth.encrypt(file_shadowname, currentNode['public'])})
+
+        if result['result'] == 'error':
+            self.output.line(" ~~~ touch command FAILED ~~~ ")
+            self.output.line(result['error'])
+        else:
+            if self.auth.verify_two_way_result(currentNode['verify'], result):
+
+                fileinfo = json.loads(self.auth.decrypt_two_way_result(
+                    result, 
+                    self.Users.getPrivateKey()))
+
+                cryptor = CryptorMaker.make(self.backupKey.getCipher())
+                tc = TextCryptor(cryptor, bytes(self.backupKey.getKey(), 'utf8') [:cryptor.getBlockSize()])
+                data = tc.encrypt(bytes(data, 'utf8'))
+
+                url = currentNode['url'] + "/files/append/" + fileinfo['id']
+
+                result = self.auth.post_data_by_auth_id(
+                    data, 
+                    url, 
+                    self.Users.getPrivateKey(), 
+                    currentNode['url'], 
+                    currentNode['nonce'], 
+                    self.Users.getUsername(), 
+                    user_shadowname, 
+                    self.Users.getNonce())
+            
+
+    def downloadDecryptString(self, file_shadowname: str) -> str:
+        myNode = self.myNodes.findNode(self.username, self.node_name)
+        currentNode = self.nodes.findNode(self.node_name)    
+
+        fileinfo = self.fileinfo(file_shadowname)
+
+        url_dl = currentNode['url'] + "/files/download/" + fileinfo['id']
+        
+        if currentNode == False:
+            raise NodeNotFound(self.node_name)
+
+        shadowname = myNode['shadowname']
+
+        headers = {}
+
+        responce = self.auth.get_responce_by_auth_id(
+            url_dl, 
+            self.Users.getPrivateKey(), 
+            currentNode['url'], 
+            currentNode['nonce'], 
+            self.Users.getUsername(), 
+            shadowname, 
+            self.Users.getNonce(), 
+            headers)
+        
+
+        cryptor = CryptorMaker.make(self.backupKey.getCipher())
+        tc = TextCryptor(cryptor, bytes(self.backupKey.getKey(), 'utf8') [:cryptor.getBlockSize()])
+        data = tc.decrypt(responce.content)
+
+        return  data.decode('utf-8')

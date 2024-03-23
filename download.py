@@ -43,9 +43,11 @@ class Noder:
                 path = ""
 
             fm = Container.FileManager()
+            fm.initKeys()
             
             try:
                 fm.download(shadowname, path)
+                fm.saveKeys()
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")

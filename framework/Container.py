@@ -24,7 +24,7 @@ class Container:
 
     def FilesService() -> files:
         km = Container.KeyManager()
-        return files(km.getUsersKey(), km.getNodesKey(), km.getMyNodesKey(), km.getFilesKey(), km.getDirectoriesKey(), Container.output())
+        return files(km.getUsersKey(), km.getNodesKey(), km.getMyNodesKey(), km.getFilesKey(), km.getDirectoriesKey(), km.getBackupKey(), Container.output())
 
     def NodeManager() -> NodeManager:
         return NodeManager(Container.KeyManager(), Container.NodeService())

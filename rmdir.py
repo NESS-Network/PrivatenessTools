@@ -8,6 +8,9 @@ from NessKeys.exceptions.NodesFileDoesNotExist import NodesFileDoesNotExist
 from NessKeys.exceptions.NodeNotFound import NodeNotFound
 from NessKeys.exceptions.NodeError import NodeError
 from NessKeys.exceptions.AuthError import AuthError
+from NessKeys.exceptions.NodeNotSelected import NodeNotSelected
+from NessKeys.exceptions.DirectoryNotEmpty import DirectoryNotEmpty
+from NessKeys.exceptions.DirNotExist import DirNotExist
 
 import requests
 from prettytable import PrettyTable
@@ -27,27 +30,19 @@ class DIR:
         elif len(sys.argv) == 2:
             directory_id = int(sys.argv[1])
 
+            fm = Container.FileManager()
             km = Container.KeyManager()
-            ns = Container.NodeService()
-        
+            fm.initKeys()
+
             try:
-                if ns.joined(km.getCurrentNodeName()):
-                    if int(directory_id) == 0:
-                        print("Can not delete root directory")
-                        exit()
+                dir = km.getDirectory(directory_id)
+                fm.rmdir(directory_id)
+                fm.saveKeys()
 
-                    if len(km.getFiles(directory_id)) > 0:
-                        dir = km.getDirectory(directory_id)
-                        print("Directory {} has one or more files".format(dir['name']))
-                        exit()
+                print ("Directory {} removed".format(dir['name']))
 
-                    if len(km.getDirectories(directory_id)) > 0:
-                        dir = km.getDirectory(directory_id)
-                        print("Directory {} has one or more directories".format(dir['name']))
-                        exit()
-
-                    km.rmdir(directory_id)
-
+            except DirNotExist as e:
+                print("Directory {} does not exist".format(e.id))
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
                 print("RUN python node.py set node-url")
@@ -60,6 +55,8 @@ class DIR:
                 print("Error on remote node: " + e.error)
             except AuthError as e:
                 print("Responce verification error")
+            except NodeNotSelected as e:
+                print("Current node is not set or not joined, try: python node.py sel <node_url>")
 
         else:
             self.__manual()

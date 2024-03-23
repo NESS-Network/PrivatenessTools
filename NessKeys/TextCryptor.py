@@ -5,9 +5,9 @@ from base64 import b64encode
 from base64 import b64decode
 
 class TextCryptor:
-    def __init__(self, cryptor: Cryptor, key: str):
+    def __init__(self, cryptor: Cryptor, key: bytes):
         self.cryptor = cryptor
-        self.key = b64decode(key)
+        self.key = key
 
     def encrypt(self, data: bytes) -> bytes:
         return self.cryptor.encrypt(data, self.key)

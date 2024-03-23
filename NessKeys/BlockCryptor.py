@@ -30,10 +30,11 @@ class BlockCryptor:
                 f_in.close()
                 f_out.close()
                 print("* Encryption stopped *")
-                GLOBAL.fn_halt()
+                if GLOBAL.fn_halt:
+                    GLOBAL.fn_halt()
                 exit()
 
-            if GLOBAL.fn_paused():
+            if GLOBAL.fn_paused and GLOBAL.fn_paused():
                 f_in.close()
                 f_out.close()
                 print("* Encryption paused *")
@@ -51,7 +52,8 @@ class BlockCryptor:
         f_in.close()
         f_out.close()
 
-        GLOBAL.fn_progress(100)
+        if GLOBAL.fn_progress:
+            GLOBAL.fn_progress(100)
 
 
     def decrypt(self, filename_in: str, filename_out: str):
@@ -72,10 +74,11 @@ class BlockCryptor:
                 f_in.close()
                 f_out.close()
                 print("* Decryption stopped *")
-                GLOBAL.fn_halt()
+                if GLOBAL.fn_halt:
+                    GLOBAL.fn_halt()
                 exit()
 
-            if GLOBAL.fn_paused():
+            if GLOBAL.fn_paused and GLOBAL.fn_paused():
                 f_in.close()
                 f_out.close()
                 print("* Decryption paused *")
@@ -84,7 +87,7 @@ class BlockCryptor:
             block = f_in.read(self.block_size)
             decrypted_block = self.cryptor.decrypt(block, self.key)
             f_out.write(decrypted_block)
-            if i > 0:
+            if GLOBAL.fn_progress and i > 0:
                 GLOBAL.fn_progress(round(i*100/blocks))
 
             # time.sleep(1)
@@ -92,4 +95,5 @@ class BlockCryptor:
         f_in.close()
         f_out.close()
 
-        GLOBAL.fn_progress(100)
+        if GLOBAL.fn_progress:
+            GLOBAL.fn_progress(100)
