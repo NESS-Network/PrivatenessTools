@@ -15,9 +15,8 @@
         <input type="file" id="fileInput" multiple>
         <label for="encryption">Encryption Algorithm:</label>
         <select id="encryption">
-            <option value="salsa20">Salsa20</option>
-            <option value="aes">AES</option>
-            
+            <option value="Salsa20">Salsa20</option>
+            <option value="AES">AES</option>
         </select>
         <button type="submit">Upload</button>
     </form>
@@ -46,6 +45,10 @@
     </form>    
   </div>
  
+    <!-- CDN links for CryptoJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/salsa20.min.js"></script>
+    
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="script.js"></script>
 </body>
