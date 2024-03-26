@@ -6,6 +6,7 @@ from framework.Container import Container
 from NessKeys.exceptions.MyNodesFileDoesNotExist import MyNodesFileDoesNotExist
 from NessKeys.exceptions.NodesFileDoesNotExist import NodesFileDoesNotExist
 from NessKeys.exceptions.NodeNotFound import NodeNotFound
+from NessKeys.exceptions.FileNotExist import FileNotExist
 from NessKeys.exceptions.NodeError import NodeError
 from NessKeys.exceptions.AuthError import AuthError
 
@@ -27,33 +28,12 @@ class Noder:
         elif len(sys.argv) == 2:
             file_shadowname = sys.argv[1]
 
-            km = Container.KeyManager()
-            ns = Container.NodeService()
-            fs = Container.FilesService()
+            fm = Container.FileManager()
+            fm.initKeys()
         
             try:
-                if ns.joined(km.getCurrentNodeName()):
-                    fileinfo = fs.fileinfo(file_shadowname)
-
-                    if fileinfo != False:
-                        print(" *** fileinfo *** ")
-                        t = PrettyTable(['Param', 'value'])
-
-                        t.add_row(["File ID", fileinfo['id']])
-                        t.add_row(["Filename", fileinfo['filename']])
-                        t.add_row(["Shadowname", fileinfo['shadowname']])
-                        t.add_row(["Status", fileinfo['status']])
-                        t.add_row(["Filesize (local)", fileinfo['size_local']])
-                        t.add_row(["Filesize (remote)", fileinfo['size_remote']])
-                        t.add_row(["Filepath (local)", fileinfo['filepath']])
-                        t.add_row(["Cipher", fileinfo['cipher']])
-                        t.add_row(["Encryption key", fileinfo['key']])
-                        t.add_row(["Public link", fileinfo['pub']])
-
-                        t.align = 'l'
-                        print(t)
-                    else:
-                        print("File {} does not exist".format(file_shadowname))
+                fm.fileinfo(file_shadowname)
+                fm.saveKeys()
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
@@ -63,6 +43,8 @@ class Noder:
                 print("RUN python nodes-update.py node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
+            except FileNotExist as e:
+                print("File {} not found".format(e.filename))
             except NodeError as e:
                 print("Error on remote node: " + e.error)
             except AuthError as e:

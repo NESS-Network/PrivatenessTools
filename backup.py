@@ -7,11 +7,15 @@ import urllib.parse
 from Crypto.Hash import SHA256
 from Crypto.Random import get_random_bytes
 import datetime
+import requests
 
 import uuid
 import NessKeys.Prng as prng
 from framework.Container import Container
 from framework.ARGS import ARGS
+
+from NessKeys.keys.Encrypted import Encrypted
+from NessKeys.keys.Backup import Backup
 
 class Backup:
 
@@ -44,19 +48,24 @@ class Backup:
             else:
                 print(bkey.getAddress())
         elif ARGS.args(['backup']):
+            fm = Container.FileManager()
             manager = Container.KeyManager()
             bkey = manager.getBackupKey()
 
-            dt = datetime.datetime.now()
-            time = dt.strftime("%Y-%m-%d %H:%M:%S")
-            filename = "Backup " + time +".json"
-
-            manager.packKeys(manager.getLocalKeyFiles(), bkey.getCipher(), bkey.getKey(), filename)
 
             if bkey.getType() == 'node':
-                pass
-                # TODO: Upload file to Selected Node and selected User
-                # TODO: Save link to address field
+                ekey = manager.packKeysKey(manager.getLocalKeyFiles(), bkey.getCipher(), bytes(bkey.getKey(), 'utf8'))
+                shadowname = fm.uploadEncryptEncryptedKey(ekey)
+                fileinfo = fm.FilesService.fileinfo(shadowname)
+                bkey.setAddress(fileinfo['pub'])
+                print (" *** Backup link: " + fileinfo['pub'])
+                manager.saveKey(bkey)
+            else:
+                dt = datetime.datetime.now()
+                time = dt.strftime("%Y-%m-%d %H:%M:%S")
+                filename = "Backup " + time +".json"
+                manager.packKeys(manager.getLocalKeyFiles(), bkey.getCipher(), bytes(bkey.getKey(), 'utf8'), filename)
+
 
         elif ARGS.args(['restore', str]):
             manager = Container.KeyManager()
@@ -75,18 +84,26 @@ class Backup:
 
         elif ARGS.args(['restore']):
             manager = Container.KeyManager()
-            bkey = manager.getBackupKey()
-
-            if bkey == False:
-                print ("Backup file not found")
-                return False
             
-            address = bkey.getAddress(0)
-            seed = bkey.getSeed()
+            address = input("Input address:")
 
-            # TODO: Upload file from address
-            # TODO: Restore key from seed
-            # TODO: unpack file to keys directory
+            seed = input("Input seed:")
+
+            key = manager.KeyFromSeed(seed.strip())
+
+            encr = requests.get(address).content
+
+            try:
+                ekey_text = manager.unpack(encr, key)
+            except Exception as e:
+                print(" ~~~ Decryption error ~~~ ")
+                print("Check URL address and seed")
+                exit(1)
+
+            ekey = manager.EncrypedKeyFromString(ekey_text)
+
+            if manager.unpackKeysFromKey(bytes(key, 'utf-8'), ekey):
+                print (" *** Keys unpacked to {} directory".format(manager.directory))
             
         else:
             self.__manual()

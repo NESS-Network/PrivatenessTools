@@ -141,7 +141,7 @@ class Files(NessKey):
         if shadowname in self.__files[username][node_name]:
             del self.__files[username][node_name][shadowname]
 
-    def __gen_shadowname(self):
+    def genShadowname(self):
         alphabet_1 = ('q','w','r','t','y','p','s','d','f','g','h','k','l','z','x','c','v','b','n','m')
         alphabet_2 = ('e','u','i','o','a')
 
@@ -155,7 +155,7 @@ class Files(NessKey):
 
     def addFile(self, username: str, node_name: str, filepath: str, status: chr, directory: int, shadowname: str = '') -> str:
         if shadowname == '':
-            shadowname = self.__gen_shadowname()
+            shadowname = self.genShadowname()
 
         filename = os.path.basename(filepath)
 

@@ -25,15 +25,10 @@ class Noder:
             self.__manual()
 
         else:
-            km = Container.KeyManager()
-            ns = Container.NodeService()
-            fs = Container.FilesService()
+            fm = Container.FileManager()
             
             try:
-                node_name = km.getCurrentNodeName()
-
-                if ns.joined(node_name):
-                    quota = fs.quota()
+                fm.quota()
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
