@@ -302,3 +302,16 @@ On client all keys are stored in `~/privateness-keys/*.json` directory, director
 ```
 ### sync.py
  TODO ...
+
+### backup.py
+```
+*** PrivateNess keys BACKUP
+### Show backup SEED
+ python backup.py seed
+### Show backup ADDRESS
+ python backup.py address
+### Do backup to selected NODE or to FILE
+ python backup.py backup [filename]
+### Restore backup from current NODE or from FILE
+ python backup.py restore [filename]
+```
