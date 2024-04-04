@@ -33,7 +33,10 @@ class node:
         return json.loads(requests.get(node_url + '/node/info').text)['info']
 
     def nodesList(self, node_url: str) -> dict:
-        return json.loads(requests.get(node_url + '/node/nodes').text)
+        return json.loads(requests.get(node_url + '/node/about').text)
+
+    def about(self, node_url: str) -> dict:
+        return requests.get(node_url + '/node/about').text
 
     def join(self, node_name: str):
         currentNode = self.Nodes.findNode(node_name)

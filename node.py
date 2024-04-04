@@ -25,6 +25,8 @@ class Noder:
         print(" python node.py list")
         print("#### Set current node (you will be registered in that node):")
         print(" python node.py sel <node-name>")
+        print("#### Show about page")
+        print(" python node.py about <node-name>")
 
     def process(self):
         km = Container.KeyManager()
@@ -57,6 +59,25 @@ class Noder:
                 node_url = sys.argv[2]
 
                 fm.join("", node_url)
+
+            except NodesFileDoesNotExist as e:
+                print("NODES LIST file not found.")
+                print("RUN python nodes-update.py node node-url")
+            except UsersKeyDoesNotExist as e:
+                print("Users key not found")
+                print("RUN user generation (python keygen.py user ......)")
+            except NodeNotFound as e:
+                print("NODE '{}' is not in nodes list".format(e.node))
+            except NodeError as e:
+                print("Error on remote node ")
+            except AuthError as e:
+                print("Responce verification error")
+
+        elif ARGS.args(['about', str]):
+            try:
+                node_url = sys.argv[2]
+
+                print( nm.about(node_url) )
 
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
