@@ -171,7 +171,7 @@ keydata = {
     "url": rand_str(),
     "nonce": rand_str(),
     "master-user": rand_str(),
-    "tags": [rand_str(),rand_str(),rand_str()],
+    "services": [rand_str(),rand_str(),rand_str()],
     "tariff": rand_float(),
 }
 

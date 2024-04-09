@@ -167,7 +167,7 @@ class KeyManager:
         return userkey.getCurrentUser()
 
 
-    def createNodeKey(self, url: str, tariff: int, masterUser: str, tags: str, entropy: int):
+    def createNodeKey(self, url: str, tariff: int, masterUser: str, services: str, entropy: int):
         keypair = self.__keypair(entropy)
         filename = urllib.parse.quote_plus(url) + ".key.json"
 
@@ -175,7 +175,7 @@ class KeyManager:
         nodekey.setUrl(url)
         nodekey.setTariff(tariff)
         nodekey.setMasterUser(masterUser)
-        nodekey.setTags(tags)
+        nodekey.setServices(services)
         nodekey.setPrivateKey(keypair[0])
         nodekey.setVerifyKey(keypair[1])
         nodekey.setPublicKey(keypair[2])

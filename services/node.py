@@ -126,4 +126,4 @@ class node:
         data = json.loads(result)
         # print(data)
 
-        return data['userinfo']
+        return data

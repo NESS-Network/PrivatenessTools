@@ -27,6 +27,8 @@ class Noder:
         print(" python node.py sel <node-name>")
         print("#### Show about page")
         print(" python node.py about <node-name>")
+        print("#### Show information about user on selected node")
+        print(" python node.py userinfo")
 
     def process(self):
         km = Container.KeyManager()
@@ -34,7 +36,9 @@ class Noder:
         fm = Container.FileManager()
 
         if ARGS.args(['list']) or ARGS.args(['ls']):
-            t = PrettyTable(['Nodes'])
+            print(" *** Nodes")
+
+            t = PrettyTable(['URL','Services','Tariff'])
             t.align = 'c'
 
             try:
@@ -42,11 +46,11 @@ class Noder:
                 current_node = nm.getCurrentNodeName()
 
                 for node in nodes:
-                    mode_url = node['url']
-                    if current_node == mode_url:
-                        mode_url = '==> ' +mode_url + ' <=='
+                    node_url = node['url']
+                    if current_node == node_url:
+                        node_url = '==> ' +node_url + ' <=='
 
-                    t.add_row([mode_url])
+                    t.add_row([node_url, ','.join(node['services']), node['tariff']])
 
                 print(t)
 
@@ -94,11 +98,24 @@ class Noder:
 
         elif len(sys.argv) == 2 and sys.argv[1].lower() == 'userinfo':
             try:
-                userinfo = nm.userinfo()
+                info = nm.userinfo()
+                userinfo = info['userinfo']
+                nodeinfo = info['nodeinfo']
+
+                print("")
+                print(" * Nodeinfo:")
 
                 t = PrettyTable(['Param', 'value'])
                 t.align = 'l'
+                t.add_row(["Tariff", nodeinfo['tariff']])
+                t.add_row(["Period (minutes)", nodeinfo['period']])
 
+                print(t)
+
+                print(" * Userinfo:")
+
+                t = PrettyTable(['Param', 'value'])
+                t.align = 'l'
                 t.add_row(["Payment address", userinfo['addr']])
                 t.add_row(["User counter", userinfo['counter']])
                 t.add_row(["User shadowname", userinfo['shadowname']])

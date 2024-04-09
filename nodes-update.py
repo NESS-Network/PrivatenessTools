@@ -74,7 +74,7 @@ class NodesUpdater:
                 worm = etree.XML(worm_text)
                 node = worm.find("node")
                 
-                if node.attrib['type'].lower() == 'ness' and node.attrib['url'] and node.attrib['public'] and node.attrib['verify'] and node.attrib['nonce'] and node.attrib['master-user'] and node.attrib['tags'] and node.attrib['tariff']:
+                if node.attrib['type'].lower() == 'ness' and node.attrib['url'] and node.attrib['public'] and node.attrib['verify'] and node.attrib['nonce'] and node.attrib['master-user'] and node.attrib['services'] and node.attrib['tariff']:
 
                     nd = {
                         'url': node.attrib['url'],
@@ -83,7 +83,7 @@ class NodesUpdater:
                         'nonce': node.attrib['nonce'],
                         'master': node.attrib['master-user'],
                         'tariff': int(node.attrib['tariff']),
-                        'tags': node.attrib['tags'].split(',')
+                        'services': node.attrib['services'].split(',')
                     }
 
                     nodes.append(nd)
@@ -135,7 +135,7 @@ class NodesUpdater:
         nodes_list = []
 
         for url in nodes:
-            if nodes[url]['type'].lower() == 'ness' and nodes[url]['url'] and nodes[url]['public'] and nodes[url]['verify'] and nodes[url]['nonce'] and nodes[url]['master'] and nodes[url]['tags'] and nodes[url]['tariff']:
+            if nodes[url]['type'].lower() == 'ness' and nodes[url]['url'] and nodes[url]['public'] and nodes[url]['verify'] and nodes[url]['nonce'] and nodes[url]['master'] and nodes[url]['services'] and nodes[url]['tariff']:
                 nodes_list.append(nodes[url])
                 print("+", flush=True)
 

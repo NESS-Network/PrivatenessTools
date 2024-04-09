@@ -20,7 +20,7 @@ class Node(NessKey):
             "url": str,
             "nonce": str,
             "master-user": str,
-            "tags": list,
+            "services": list,
             "tariff": float,
         }
 
@@ -32,7 +32,7 @@ class Node(NessKey):
         self.__url = keydata["url"]
         self.__nonce = keydata["nonce"]
         self.__master_user = keydata["master-user"]
-        self.__tags = keydata["tags"]
+        self.__services = keydata["services"]
         self.__tariff = keydata["tariff"]
 
     def compile(self) -> dict:
@@ -50,7 +50,7 @@ class Node(NessKey):
             "url": self.__url,
             "nonce": self.__nonce,
             "master-user": self.__master_user,
-            "tags": self.__tags,
+            "services": self.__services,
             "tariff": self.__tariff,
         }
 
@@ -73,7 +73,7 @@ class Node(NessKey):
             "url": self.__url,
             "nonce": self.__nonce,
             "master-user": self.__master_user,
-            "tags": ",".join(self.__tags),
+            "services": ",".join(self.__services),
             "tariff": self.__tariff,
         }
 
@@ -96,15 +96,15 @@ class Node(NessKey):
         worm = "<worm>"+linesep+\
             tab + "<node type=\"ness\" url=\"" + nodedata["url"] + "\" nonce=\"" + nodedata["nonce"] + "\"   " + \
             " verify=\"" + nodedata['keys']["verify"] + "\" public=\"" + nodedata['keys']["public"] + "\" master-user=\"" + \
-            nodedata["master-user"] + "\" tariff=\"" + str(nodedata["tariff"]) + "\" tags=\"" + ','.join(nodedata["tags"]) + "\">" + linesep + \
+            nodedata["master-user"] + "\" tariff=\"" + str(nodedata["tariff"]) + "\" services=\"" + ','.join(nodedata["services"]) + "\">" + linesep + \
             tab2 + "<!-- Here tags may be different for each type of node or each node -->" + linesep + \
             tab + "</node>" + linesep + \
             "</worm>"
 
         return worm
 
-    def getTags(self):
-        return self.__tags
+    def getServices(self):
+        return self.__services
 
     def getNonce(self):
         return self.__nonce
@@ -127,8 +127,8 @@ class Node(NessKey):
     def getMasterUser(self):
         return self.__master_user
 
-    def setTags(self, tags: str):
-        self.__tags = tags.split(',')
+    def setServices(self, services: str):
+        self.__services = services.split(',')
 
     def setNonce(self, nonce: str):
         self.__nonce = nonce
