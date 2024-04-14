@@ -18,10 +18,11 @@ class Node(NessKey):
                 "verify": str
             },
             "url": str,
+            "network": str,
             "nonce": str,
             "master-user": str,
             "services": list,
-            "tariff": float,
+            "tariff": int,
         }
 
         JsonChecker.check('Node key check', keydata, map)
@@ -31,6 +32,12 @@ class Node(NessKey):
         self.__verify_key = keydata["keys"]["verify"]
         self.__url = keydata["url"]
         self.__nonce = keydata["nonce"]
+        
+        if "network" in keydata:
+            self.__network = keydata["network"]
+        else:
+            self.__network = "inet"
+
         self.__master_user = keydata["master-user"]
         self.__services = keydata["services"]
         self.__tariff = keydata["tariff"]
@@ -48,6 +55,7 @@ class Node(NessKey):
                 "verify": self.__verify_key
             },
             "url": self.__url,
+            "network": self.__network,
             "nonce": self.__nonce,
             "master-user": self.__master_user,
             "services": self.__services,
@@ -72,8 +80,9 @@ class Node(NessKey):
             },
             "url": self.__url,
             "nonce": self.__nonce,
+            "network": self.__network,
             "master-user": self.__master_user,
-            "services": ",".join(self.__services),
+            "services": self.__services,
             "tariff": self.__tariff,
         }
 
@@ -83,7 +92,7 @@ class Node(NessKey):
         return "worm:node:ness:" + self.__url
         
     def print(self):
-        return "Privateness Node Key: <{}>\nMaster User:<{}>\nTariff:<{}>".format(self.__url, self.__master_user, self.__tariff)
+        return "Privateness Node Key: <{}>\nNetwork: <{}>\nMaster User:<{}>\nTariff:<{}>".format(self.__url, self.__network, self.__master_user, self.__tariff)
 
     def getFilename(self):
         return urllib.parse.quote_plus(self.__url) + ".key.json"
@@ -94,7 +103,7 @@ class Node(NessKey):
         tab2 = '\t\t'
 
         worm = "<worm>"+linesep+\
-            tab + "<node type=\"ness\" url=\"" + nodedata["url"] + "\" nonce=\"" + nodedata["nonce"] + "\"   " + \
+            tab + "<node type=\"ness\" url=\"" + nodedata["url"] + "\" network=\"" + nodedata["network"] + "\" nonce=\"" + nodedata["nonce"] + "\"   " + \
             " verify=\"" + nodedata['keys']["verify"] + "\" public=\"" + nodedata['keys']["public"] + "\" master-user=\"" + \
             nodedata["master-user"] + "\" tariff=\"" + str(nodedata["tariff"]) + "\" services=\"" + ','.join(nodedata["services"]) + "\">" + linesep + \
             tab2 + "<!-- Here tags may be different for each type of node or each node -->" + linesep + \
@@ -108,6 +117,9 @@ class Node(NessKey):
 
     def getNonce(self):
         return self.__nonce
+
+    def getNetwork(self):
+        return self.__network
 
     def getPrivateKey(self):
         return self.__private_key
@@ -129,6 +141,9 @@ class Node(NessKey):
 
     def setServices(self, services: str):
         self.__services = services.split(',')
+
+    def setNetwork(self, network: str):
+        self.__network = network
 
     def setNonce(self, nonce: str):
         self.__nonce = nonce

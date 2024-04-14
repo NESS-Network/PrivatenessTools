@@ -22,12 +22,30 @@ class node:
         self.MyNodes = myNodes
 
         current_node = self.MyNodes.getCurrentNode()
-        self.username = current_node[0]
-        self.node_name = current_node[1]
+
+        if len(current_node) == 2:
+            self.username = current_node[0]
+            self.node_name = current_node[1]
+        else:
+            self.username = ''
+            self.node_name = ''
 
         self.auth = NessAuth()
 
         self.output = output
+
+    def nodePing(self, node_url: str) -> dict:
+        r = requests.get(node_url + '/node/nodes')
+
+        if r.status_code != 200:
+            return False
+
+        try:
+            json.loads(r.text)
+        except Exception as e:
+            return False
+
+        return True
 
     def nodeInfo(self, node_url: str) -> dict:
         return json.loads(requests.get(node_url + '/node/info').text)['info']
@@ -116,14 +134,14 @@ class node:
             self.Users.getPrivateKey(), 
             shadowname )
 
+
         if result['result'] == 'error':
-            raise NodeError()
+            raise NodeError(result['error'])
 
         if not self.auth.verify_two_way_result(currentNode['verify'], result):
             raise AuthError()
 
         result = self.auth.decrypt_two_way_result(result, self.Users.getPrivateKey())
         data = json.loads(result)
-        # print(data)
 
         return data

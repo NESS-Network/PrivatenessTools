@@ -34,8 +34,13 @@ class files:
         self.myNodes = myNodes
 
         current_node = self.myNodes.getCurrentNode()
-        self.username = current_node[0]
-        self.node_name = current_node[1]
+
+        if len(current_node) == 2:
+            self.username = current_node[0]
+            self.node_name = current_node[1]
+        else:
+            self.username = ''
+            self.node_name = ''
 
         self.node = self.myNodes.findNode(self.username, self.node_name)
 

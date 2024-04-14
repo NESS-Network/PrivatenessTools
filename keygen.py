@@ -38,8 +38,8 @@ class Keygen:
         print("  user <username> \"coma,separated,tags\" <Entropy level>")
         print("  Example: $ python keygen.py user user1 \"Hello,World\" 5")
         print("#### Generate node Key")
-        print("  node <Node name or URL> <Tariff> master-user-name \"coma,separated,services\"  <Entropy level>")
-        print("  Example: $ python keygen.py node http://my-node.net 111 master \"prng,files\" 5")
+        print("  node <Node name or URL> <Tariff> master-user-name \"coma,separated,services\" \"network\"  <Entropy level>")
+        print("  Example: $ python keygen.py node http://my-node.net 111 master \"prng,files\" inet 5")
         print("#### Generate Faucet Key")
         print("  faucet <Faucet URL> <Entropy level>")
         print("  Example: $ python keygen.py faucet http://www.faucet.net 5")
@@ -72,7 +72,7 @@ class Keygen:
 
             return manager.createUsersKey(username, tags, entropy)
 
-        elif ARGS.args(['node', str, str, str, str, str]):
+        elif ARGS.args(['node', str, str, str, str, str, str]):
             url = sys.argv[2]
 
             if self.__is_integer(sys.argv[3]):
@@ -83,9 +83,10 @@ class Keygen:
 
             master_user = sys.argv[4]
             services = sys.argv[5]
+            network = sys.argv[6]
 
-            if self.__is_integer(sys.argv[6]):
-                entropy = int(sys.argv[6])
+            if self.__is_integer(sys.argv[7]):
+                entropy = int(sys.argv[7])
 
                 if entropy < 1:
                     entropy = 1
@@ -95,7 +96,7 @@ class Keygen:
 
             manager = Container.KeyManager()
 
-            return manager.createNodeKey(url, tariff, master_user, services, entropy)
+            return manager.createNodeKey(url, tariff, master_user, services, network, entropy)
 
         elif ARGS.args(['faucet', str, str]):
             url = sys.argv[2]

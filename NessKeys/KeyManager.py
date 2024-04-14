@@ -167,7 +167,7 @@ class KeyManager:
         return userkey.getCurrentUser()
 
 
-    def createNodeKey(self, url: str, tariff: int, masterUser: str, services: str, entropy: int):
+    def createNodeKey(self, url: str, tariff: int, masterUser: str, services: str, network: str, entropy: int):
         keypair = self.__keypair(entropy)
         filename = urllib.parse.quote_plus(url) + ".key.json"
 
@@ -176,6 +176,7 @@ class KeyManager:
         nodekey.setTariff(tariff)
         nodekey.setMasterUser(masterUser)
         nodekey.setServices(services)
+        nodekey.setNetwork(network)
         nodekey.setPrivateKey(keypair[0])
         nodekey.setVerifyKey(keypair[1])
         nodekey.setPublicKey(keypair[2])
@@ -582,12 +583,11 @@ class KeyManager:
         return mkey
 
 
-    def isNodeInMyNodes(self, node_name: str) -> bool:
+    def isNodeInMyNodes(self, username: str, node_url: str) -> bool:
         key = self.getMyNodesKey()
+        return (key.findNode(username, node_url) != False)
 
-        return (key.findNode(node_name) != False)
-
-    def isNodeInNodesList(self, node_name: str) -> bool:
+    def isNodeInNodesList(self, node_url: str) -> bool:
         key = Nodes()
         
         if not self.keyExists(key):
@@ -595,7 +595,7 @@ class KeyManager:
 
         self.loadKey(key)
 
-        return (key.findNode(node_name) != False)
+        return (key.findNode(node_url) != False)
 
     def getCurrentNodeName(self):
         if self.hasMyNodes():
@@ -639,8 +639,8 @@ class KeyManager:
         ukey = self.getUsersKey()
         username = ukey.getUsername()
 
-        if not nkey.findNode(username, node_name):
-            raise NodeNotInList()
+        # if not nkey.findNode(username, node_name):
+        #     raise NodeNotInList()
 
         nkey.changeCurrentNode(username, node_name)
 

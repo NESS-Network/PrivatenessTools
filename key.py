@@ -34,7 +34,7 @@ class Key:
         print("### USAGE:")
         print("### List Keys")
         print("#### Show all contents of keyfile")
-        print("  list {dirpath]")
+        print("  list [dirpath]")
         print("### Show Key")
         print("#### Show all contents of keyfile")
         print(" show <keyfile>")

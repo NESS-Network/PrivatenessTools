@@ -39,6 +39,8 @@ class FileManager:
         
         if username != "":
             self.KeyManager.changeCurrentUser(username)
+        else:
+            username = self.KeyManager.getCurrentUser()
 
         if not self.KeyManager.isNodeInNodesList(node_url):
             raise NodeNotFound(node_url)
@@ -46,6 +48,9 @@ class FileManager:
         shadowname = self.NodesService.joined(node_url)
 
         if shadowname == False:
+            shadowname = self.NodesService.join(node_url)
+
+        if not self.KeyManager.isNodeInMyNodes(username, node_url):
             entropy = self.KeyManager.getDefaultEntrophy()
 
             print(" *** Generating keys for node {} ...".format(node_url))
@@ -85,7 +90,6 @@ class FileManager:
 
             fskey = generator.string(16)
             
-            shadowname = self.NodesService.join(node_url)
 
             self.KeyManager.saveCurrentNode(node_url, shadowname, b64encode(key.encode()).decode('utf-8'), b64encode(fskey.encode()).decode('utf-8'), cipher)
 
