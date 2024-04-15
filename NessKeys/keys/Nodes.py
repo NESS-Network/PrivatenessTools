@@ -20,12 +20,13 @@ class Nodes(NessKey):
 
         map = {
             "url": str,
+            "network": str,
             "public": str,
             "verify": str,
             "nonce": str,
             "master": str,
             "tariff": int,
-            "tags": list
+            "services": list
         }
 
         DeepChecker.check('Nodes key check (nodes list)', keydata['nodes'], map, 1)

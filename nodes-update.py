@@ -74,8 +74,7 @@ class NodesUpdater:
                 worm = etree.XML(worm_text)
                 node = worm.find("node")
                 
-                if node.attrib['type'].lower() == 'ness' and node.attrib['url'] and node.attrib['public'] and node.attrib['verify'] and node.attrib['nonce'] and node.attrib['master-user'] and node.attrib['tags'] and node.attrib['tariff']:
-
+                if node.attrib['type'].lower() == 'ness' and 'url' in node.attrib and 'public' in node.attrib and 'verify' in node.attrib and 'nonce' in node.attrib and 'master-user' in node.attrib and 'services' in node.attrib and 'tariff' in node.attrib:
                     nd = {
                         'url': node.attrib['url'],
                         'public': node.attrib['public'],
@@ -83,9 +82,14 @@ class NodesUpdater:
                         'nonce': node.attrib['nonce'],
                         'master': node.attrib['master-user'],
                         'tariff': int(node.attrib['tariff']),
-                        'tags': node.attrib['tags'].split(',')
+                        'services': node.attrib['services'].split(',')
                     }
-
+                    
+                    if 'network' in node.attrib:
+                        nd['network'] = node.attrib['network']
+                    else:
+                        nd['network'] = 'inet'
+                        
                     nodes.append(nd)
                     
                     print('+', end = " ", flush = True)
@@ -135,9 +139,15 @@ class NodesUpdater:
         nodes_list = []
 
         for url in nodes:
-            if nodes[url]['type'].lower() == 'ness' and nodes[url]['url'] and nodes[url]['public'] and nodes[url]['verify'] and nodes[url]['nonce'] and nodes[url]['master'] and nodes[url]['tags'] and nodes[url]['tariff']:
+            if nodes[url]['type'].lower() == 'ness' and 'url' in nodes[url] and 'public' in nodes[url] and 'verify' in nodes[url] and 'nonce' in nodes[url] and 'master' in nodes[url] and 'services' in nodes[url] and 'tariff' in nodes[url]:
+                
+                if 'network' in nodes[url]:
+                    nodes[url]['network'] = 'inet'
+
                 nodes_list.append(nodes[url])
-                print("+", flush=True)
+                print('+', end = " ", flush = True)
+
+        print()
 
         km.saveNodesList(nodes_list)
 
@@ -151,11 +161,11 @@ class NodesUpdater:
                 print ("* Failed to list nodes from remote node")
             except NodeError as e:
                 print ("* Node error '{}'".format(e.error))
-            except NodesFileDoesNotExist as e:
-                print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
-                print("OR")
-                print("RUN python nodes-update.py blk rpc-host rpc-port rpc-user rpc-password")
+            # except NodesFileDoesNotExist as e:
+            #     print("NODES LIST file not found.")
+            #     print("RUN python nodes-update.py node node-url")
+            #     print("OR")
+            #     print("RUN python nodes-update.py blk rpc-host rpc-port rpc-user rpc-password")
             except Exception as e:
                 print ("* Error '{}'".format(str(e)))
 

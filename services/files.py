@@ -15,7 +15,6 @@ import math
 import os
 import time
 import requests
-from prettytable import PrettyTable
 import humanize
 
 from NessKeys.CryptorMaker import CryptorMaker
@@ -35,8 +34,13 @@ class files:
         self.myNodes = myNodes
 
         current_node = self.myNodes.getCurrentNode()
-        self.username = current_node[0]
-        self.node_name = current_node[1]
+
+        if len(current_node) == 2:
+            self.username = current_node[0]
+            self.node_name = current_node[1]
+        else:
+            self.username = ''
+            self.node_name = ''
 
         self.node = self.myNodes.findNode(self.username, self.node_name)
 
@@ -278,26 +282,17 @@ class files:
         if result['result'] == 'error':
             self.output.line(" ~~~ quota command FAILED ~~~ ")
             self.output.line(result['error'])
+            return False
         else:
             if self.auth.verify_two_way_result(currentNode['verify'], result):
                 print(" *** User file storage quota *** ")
                 quota = json.loads(self.auth.decrypt_two_way_result(result, self.Users.getPrivateKey()))
-                quota = quota['quota']
-
-                t = PrettyTable(['Param', 'value'])
-                t.align = 'l'
-                t.add_row(["Total", humanize.naturalsize(quota['total'])])
-                t.add_row(["Used", humanize.naturalsize(quota['used'])])
-                t.add_row(["Free", humanize.naturalsize(quota['free'])])
-
-                print(t)
+                return quota['quota']
             else:
                 self.output.line(" ~~~ quota command FAILED ~~~ ")
                 self.output.line(" Verifying signature failed ")
 
                 return False
-
-        return True
 
     def __download(self, file_id: str, real_filename: str, path: str = ''):
         myNode = self.myNodes.findNode(self.username, self.node_name)
@@ -462,13 +457,16 @@ class files:
         dir = self.dir()
 
         if dir != False:
-            t = PrettyTable(['Shadowname', 'Filename', 'Size', 'Status', 'Share'])
-            t.align = 'l'
             files = self.filesKey.getFiles(self.username, self.node_name, currentDir)
             directories = self.directoriesKey.ls(self.username, self.node_name)
+            result = {}
             
             for id in directories:
-                t.add_row([id, '[' + directories[id]['name'] + ']', '', '', ''])
+                result[id] = directories[id]
+                result[id]['filename'] = '[' + directories[id]['name'] + ']'
+                result[id]['size'] = ''
+                result[id]['pub'] = ''
+                result[id]['status'] = ''
 
             for shadowname in files:
                 file = files[shadowname]
@@ -478,35 +476,27 @@ class files:
                     if shadowname == file['filename']:
                         pub = currentNode['url'] + "/files/pub/" + dirf['id'] + "-" + node_shadowname + "-" + self.auth.alternative_id(self.Users.getPrivateKey(), currentNode['url'], currentNode["nonce"], self.Users.getUsername(), self.Users.getNonce())
                     else:
-                        pub = "-"
+                        pub = ""
 
-                    t.add_row([shadowname, file['filename'], humanize.naturalsize(dirf['size']), self.__status(file), pub])
+                    file['size'] = humanize.naturalsize(dirf['size'])
+                    file['pub'] = pub
                 else:
-                    t.add_row([shadowname, file['filename'], '-', self.__status(file), '-'])
+                    file['size'] = ''
+                    file['pub'] = ''
+
+                file['status'] = self.__status(file)
+
+                result[shadowname] = file
 
             self.output.line(" *** Contents of {}  ".format(currentDirName))
-            self.output.line(t)
+
+            return result
         else:
-            self.output.line(" ~~~ list command FAILED ~~~ ")
-            self.output.line(self.err)
+            return False
 
 
     def raw(self):
-        dir = self.dir()
-
-        if dir != False:
-            t = PrettyTable(['Filename', 'ID', 'Size'])
-            t.align = 'l'
-            self.output.line(" *** list *** ")
-            
-            for file in dir:
-                t.add_row([file, dir[file]['id'], dir[file]['size']])
-
-            t.align = 'l'
-            self.output.line(t)
-        else:
-            self.output.line(" ~~~ list command FAILED ~~~ ")
-            self.output.line(self.err)
+        return self.dir()
 
     def jobs(self):
         myNode = self.myNodes.findNode(self.username, self.node_name)
@@ -519,18 +509,13 @@ class files:
 
         node_shadowname = myNode['shadowname']
 
-        t = PrettyTable(['Action', 'Shadowname', 'Filename', 'Size', 'Status', 'Share'])
-        t.align = 'l'
         files = self.filesKey.getAllFiles(self.username, self.node_name)
+
+        result = {}
 
         for shadowname in files:
             file = files[shadowname]
             if file['paused'] or not file['progress'] in (0, 100):
-
-                if file['paused']:
-                    action = '[  ||| PAUSED ||| ]'
-                else:
-                    action = '[ >>> RUNNING >>> ]'
 
                 if shadowname == file['filename'] and shadowname in dir:
                     dirf = dir[shadowname]
@@ -538,13 +523,27 @@ class files:
                 else:
                     pub = "-"
 
+
+                if file['paused']:
+                    action = '[  ||| PAUSED ||| ]'
+                else:
+                    action = '[ >>> RUNNING >>> ]'
+
+                file['action'] = action
+                file['status'] = self.__status(file)
+
+
                 if shadowname in dir:
                     dirf = dir[shadowname]
-                    t.add_row([action, shadowname, file['filename'], humanize.naturalsize(dirf['size']), self.__status(file), pub])
+                    file['pub'] = pub
+                    file['size'] = humanize.naturalsize(dirf['size'])
                 else:
-                    t.add_row([action, shadowname, file['filename'], '-', self.__status(file), '-'])
+                    file['pub'] = '-'
+                    file['size'] = '-'
 
-        self.output.line(t)
+                result[shadowname] = file
+
+        return result
 
     def encrypt(self, filepath: str, shadowname: str):
         file = self.filesKey.getFile(self.username, self.node_name, shadowname)
@@ -635,7 +634,34 @@ class files:
                     self.Users.getUsername(), 
                     user_shadowname, 
                     self.Users.getNonce())
-            
+
+    # def downloadDecryptStringFromUrl(self, url: str) -> str:
+    #     myNode = self.myNodes.findNode(self.username, self.node_name)
+    #     currentNode = self.nodes.findNode(self.node_name)
+        
+    #     if currentNode == False:
+    #         raise NodeNotFound(self.node_name)
+
+    #     shadowname = myNode['shadowname']
+
+    #     headers = {}
+
+    #     responce = self.auth.get_responce_by_auth_id(
+    #         url, 
+    #         self.Users.getPrivateKey(), 
+    #         currentNode['url'], 
+    #         currentNode['nonce'], 
+    #         self.Users.getUsername(), 
+    #         shadowname, 
+    #         self.Users.getNonce(), 
+    #         headers)
+        
+
+    #     cryptor = CryptorMaker.make(self.backupKey.getCipher())
+    #     tc = TextCryptor(cryptor, bytes(self.backupKey.getKey(), 'utf8') [:cryptor.getBlockSize()])
+    #     data = tc.decrypt(responce.content)
+
+    #     return  data.decode('utf-8')
 
     def downloadDecryptString(self, file_shadowname: str) -> str:
         myNode = self.myNodes.findNode(self.username, self.node_name)

@@ -1,3 +1,6 @@
+import math
+import random
+import time
 import os
 import glob
 import random
@@ -59,7 +62,17 @@ class KeyManager:
         self.__storage = storage
         self.__key_maker = key_maker
         self.directory = str(Path.home()) + "/.privateness-keys"
-        self.keys = glob.glob(self.directory + '/*.json')
+        keys = glob.glob(self.directory + '/*.json')
+
+        dkey = self.directory + '/directories.key.json'
+        if dkey in keys:
+            keys.remove(dkey)
+
+        fkey = self.directory + '/files.key.json'
+        if fkey in keys:
+            keys.remove(fkey)
+
+        self.keys = keys
 
     def getLocalKeyFiles(self):
         return self.keys
@@ -154,7 +167,7 @@ class KeyManager:
         return userkey.getCurrentUser()
 
 
-    def createNodeKey(self, url: str, tariff: int, masterUser: str, tags: str, entropy: int):
+    def createNodeKey(self, url: str, tariff: int, masterUser: str, services: str, network: str, entropy: int):
         keypair = self.__keypair(entropy)
         filename = urllib.parse.quote_plus(url) + ".key.json"
 
@@ -162,7 +175,8 @@ class KeyManager:
         nodekey.setUrl(url)
         nodekey.setTariff(tariff)
         nodekey.setMasterUser(masterUser)
-        nodekey.setTags(tags)
+        nodekey.setServices(services)
+        nodekey.setNetwork(network)
         nodekey.setPrivateKey(keypair[0])
         nodekey.setVerifyKey(keypair[1])
         nodekey.setPublicKey(keypair[2])
@@ -194,6 +208,14 @@ class KeyManager:
         self.__storage.save(bkey.compile(), self.fileName(bkey.getFilename()))
 
         return bkey
+
+
+    def createEncryptedKey(self, cipher: str) -> Encrypted:
+        ekey = Encrypted()
+        ekey.setFor("Backup")
+        ekey.setCipher(cipher)
+
+        return ekey
 
     def getBackupKey(self) -> BackupKey:
         bkey = BackupKey()
@@ -263,6 +285,16 @@ class KeyManager:
 
         return True
 
+    def EncrypedKeyFromString(self, keydata: str):
+        ekey = Encrypted()
+        ekey.load(json.loads(keydata))
+        return ekey
+
+    def unpack(self, data: str, key: str):
+        cryptor = CryptorMaker.make('aes')
+        tcr = TextCryptor(cryptor, bytes(key, 'utf-8') [:cryptor.getBlockSize()])
+        return tcr.decrypt(bytes(data))
+
     def unpackKeysPassword(self, filename: str, password: str = 'qwerty123', dir = ""):
         cryptor = CryptorMaker.make('salsa20')
         pc = PasswordCryptor(cryptor, password)
@@ -315,22 +347,19 @@ class KeyManager:
         
         self.__storage.save(encrypted.compile(), outFilename)
 
-
-
-    def unpackKeys(self, key: bytes, filename: str):
-        Key = self.__getKey(filename)
-        packedKeys = Key.getKeys()
-        crc = Key.getCrc()
-        cipher = Key.getCipher()
+    def unpackKeysFromKey(self, key: bytes, EncryptedKey: Encrypted):
+        packedKeys = EncryptedKey.getKeys()
+        crc = EncryptedKey.getCrc()
+        cipher = EncryptedKey.getCipher()
 
         cryptor = CryptorMaker.make(cipher)
-        pc = TextCryptor(cryptor, key)
+        pc = TextCryptor(cryptor, key [:cryptor.getBlockSize()])
 
         try:
             i = 0
             for packedKey in packedKeys:
                 # Unpack key
-                original_key = pc.decrypt( b64decode(packedKey), b64decode(crc[i]) ).decode('utf-8')
+                original_key = pc.decrypt( b64decode(packedKey) ).decode('utf-8')
                 # Restore key
                 keydata = json.loads(original_key)
                 key = self.__key_maker.make(keydata)
@@ -338,14 +367,18 @@ class KeyManager:
                 self.__storage.save(key.compile(), self.fileName(key.getFilename()))
                 i += 1
         except ValueError as error:
-            print(' !!! Decryption of {} failed: {}'.format(filename, error))
+            print(' !!! Decryption of key failed: {}'.format(error))
             return False
 
         return True
 
-    def packKeys(self, keysFiles: list, cipher: str, key: bytes, outFilename: str):
+    def unpackKeys(self, key: bytes, filename: str):
+        Key = self.__getKey(filename)
+        return self.unpackKeysFromKey(key, Key)
+
+    def packKeysKey(self, keysFiles: list, cipher: str, key: bytes) -> Encrypted:
         cryptor = CryptorMaker.make(cipher)
-        pc = TextCryptor(cryptor, key)
+        pc = TextCryptor(cryptor, key [:cryptor.getBlockSize()])
         keys = []
         crc = []
 
@@ -376,8 +409,15 @@ class KeyManager:
         encrypted.setKeys(keys)
         encrypted.setCrc(crc)
         encrypted.setCipher(cipher)
-        
+
+        return encrypted
+
+    def packKeys(self, keysFiles: list, cipher: str, key: bytes, outFilename: str):
+        encrypted = self.packKeysKey(keysFiles, cipher, key)
         self.__storage.save(encrypted.compile(), outFilename)
+
+    def packKeysFile(self, keysFiles: list, cipher: str, key: bytes, outFilename: str):
+        self.packKeys(keysFiles, cipher, key, outFilename)
 
     def hasUsersKey(self) -> bool:
         return self.fileExists(Users.filename())
@@ -543,12 +583,11 @@ class KeyManager:
         return mkey
 
 
-    def isNodeInMyNodes(self, node_name: str) -> bool:
+    def isNodeInMyNodes(self, username: str, node_url: str) -> bool:
         key = self.getMyNodesKey()
+        return (key.findNode(username, node_url) != False)
 
-        return (key.findNode(node_name) != False)
-
-    def isNodeInNodesList(self, node_name: str) -> bool:
+    def isNodeInNodesList(self, node_url: str) -> bool:
         key = Nodes()
         
         if not self.keyExists(key):
@@ -556,7 +595,7 @@ class KeyManager:
 
         self.loadKey(key)
 
-        return (key.findNode(node_name) != False)
+        return (key.findNode(node_url) != False)
 
     def getCurrentNodeName(self):
         if self.hasMyNodes():
@@ -600,8 +639,8 @@ class KeyManager:
         ukey = self.getUsersKey()
         username = ukey.getUsername()
 
-        if not nkey.findNode(username, node_name):
-            raise NodeNotInList()
+        # if not nkey.findNode(username, node_name):
+        #     raise NodeNotInList()
 
         nkey.changeCurrentNode(username, node_name)
 
@@ -937,4 +976,16 @@ class KeyManager:
 
     def getDefaultCipher(self) -> int:
         return self.getSettingsKey().getCipher()
+
+    def genShadowname(self):
+        alphabet_1 = ('q','w','r','t','y','p','s','d','f','g','h','k','l','z','x','c','v','b','n','m')
+        alphabet_2 = ('e','u','i','o','a')
+
+        random.seed(time.time())
+        rand = math.floor(random.uniform(11, 99))
+
+        return random.choice(alphabet_1) + \
+            random.choice(alphabet_1) + \
+            random.choice(alphabet_1) + \
+            random.choice(alphabet_2) + '.' + str(rand)
 

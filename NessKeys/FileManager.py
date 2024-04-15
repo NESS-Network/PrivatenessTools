@@ -1,8 +1,10 @@
 from NessKeys.KeyManager import KeyManager
 import NessKeys.Prng as prng
 
+from NessKeys.interfaces.NessKey import NessKey
 from NessKeys.keys.Files import Files as FilesKey
 from NessKeys.keys.Directories import Directories as DirectoriesKey
+from NessKeys.keys.Encrypted import Encrypted
 
 from NessKeys.exceptions.NodeNotFound import NodeNotFound
 from NessKeys.exceptions.NodeNotSelected import NodeNotSelected
@@ -14,6 +16,9 @@ from base64 import b64decode
 import uuid
 import os
 import json
+from prettytable import PrettyTable
+import humanize
+from typing import Callable
 
 from services.node import node
 from services.files import files
@@ -22,16 +27,20 @@ from framework.GLOBAL import GLOBAL
 
 class FileManager:
 
-    def __init__(self, KeyManager: KeyManager, NodesService: node, FilesService: files):
+    def __init__(self, KeyManager: KeyManager, NodesService: Callable, FilesService: Callable):
         self.KeyManager = KeyManager
-        self.NodesService = NodesService
-        self.FilesService = FilesService
+        self.fnNodesService = NodesService
+        self.fnFilesService = FilesService
+        self.NodesService = self.fnNodesService()
+        self.FilesService = self.fnFilesService()
 
     def join(self, username: str = "", node_url: str = ""):        
         self.initKeys()
         
         if username != "":
             self.KeyManager.changeCurrentUser(username)
+        else:
+            username = self.KeyManager.getCurrentUser()
 
         if not self.KeyManager.isNodeInNodesList(node_url):
             raise NodeNotFound(node_url)
@@ -39,6 +48,9 @@ class FileManager:
         shadowname = self.NodesService.joined(node_url)
 
         if shadowname == False:
+            shadowname = self.NodesService.join(node_url)
+
+        if not self.KeyManager.isNodeInMyNodes(username, node_url):
             entropy = self.KeyManager.getDefaultEntrophy()
 
             print(" *** Generating keys for node {} ...".format(node_url))
@@ -78,7 +90,6 @@ class FileManager:
 
             fskey = generator.string(16)
             
-            shadowname = self.NodesService.join(node_url)
 
             self.KeyManager.saveCurrentNode(node_url, shadowname, b64encode(key.encode()).decode('utf-8'), b64encode(fskey.encode()).decode('utf-8'), cipher)
 
@@ -88,10 +99,36 @@ class FileManager:
         print("Node URL {} is joined with SHADOWNAME {}".format(node_url, shadowname))
 
     def ls(self):
-        if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
-            self.FilesService.ls()
-        else:
+        if not self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
             raise NodeNotSelected()
+
+        files = self.FilesService.ls()
+
+        if files != False:
+            t = PrettyTable(['Shadowname', 'Filename', 'Size', 'Status', 'Share'])
+
+            for shadowname in files:
+                file = files[shadowname]
+                t.add_row([shadowname, file['filename'], file['size'], file['status'], file['pub']])
+
+            t.align = 'l'
+
+            print(t)
+
+    def raw(self):
+        if not self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
+            raise NodeNotSelected()
+
+        files = self.FilesService.raw()
+
+        if files != False:
+            t = PrettyTable(['Filename', 'ID', 'Size'])
+            t.align = 'l'
+
+            for filename in files:
+                t.add_row([filename, files[filename]['id'], files[filename]['size']])
+
+            print(t)
 
     def cd(self, ID: int):
         if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
@@ -134,6 +171,27 @@ class FileManager:
                 self.KeyManager.moveFile(ID, directory)
             else:
                 self.KeyManager.moveDir(int(ID), directory)
+
+    def fileinfo(self, shadowname: str):
+        fileinfo =  self.FilesService.fileinfo(shadowname)
+
+        if fileinfo != False:
+            print(" *** fileinfo *** ")
+            t = PrettyTable(['Param', 'value'])
+
+            t.add_row(["File ID", fileinfo['id']])
+            t.add_row(["Filename", fileinfo['filename']])
+            t.add_row(["Shadowname", fileinfo['shadowname']])
+            t.add_row(["Status", fileinfo['status']])
+            t.add_row(["Filesize (local)", fileinfo['size_local']])
+            t.add_row(["Filesize (remote)", fileinfo['size_remote']])
+            t.add_row(["Filepath (local)", fileinfo['filepath']])
+            t.add_row(["Public link", fileinfo['pub']])
+
+            t.align = 'l'
+            print(t)
+        else:
+            print("File {} does not exist".format(shadowname))
 
     def remove(self, file_shadowname: str):
         if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
@@ -180,15 +238,37 @@ class FileManager:
 
     def jobs(self):
         if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
-            self.FilesService.jobs()
+            jobs = self.FilesService.jobs()
+
+            t = PrettyTable(['Action', 'Shadowname', 'Filename', 'Size', 'Status', 'Share'])
+            t.align = 'l'
+
+            for shadowname in jobs:
+                job = jobs[shadowname]
+                t.add_row([job['action'], shadowname, job['filename'], job['size'], job['status'], job['pub']])
+
+            print(t)
         else:
             raise NodeNotSelected()
 
-    def raw(self):
-        if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
-            self.FilesService.raw()
-        else:
+
+
+    def quota(self):
+        if not self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
             raise NodeNotSelected()
+
+        quota = self.FilesService.quota()
+
+        if quota != False:
+            t = PrettyTable(['Param', 'value'])
+            t.align = 'l'
+            t.add_row(["Total", humanize.naturalsize(quota['total'])])
+            t.add_row(["Used", humanize.naturalsize(quota['used'])])
+            t.add_row(["Free", humanize.naturalsize(quota['free'])])
+
+            print(t)
+
+        return True
 
     def tree(self):
         return self.KeyManager.tree()
@@ -225,6 +305,8 @@ class FileManager:
         self.KeyManager.addFile(filepath, 'u', self.KeyManager.getCurrentDir(), shadowname)
         self.FilesService.upload(filepath, shadowname)
         self.KeyManager.setFileStatus(shadowname, 'n')
+
+        return shadowname
 
     def download(self, shadowname: str, path: str = ""):
         node_name = self.KeyManager.getCurrentNodeName()
@@ -309,7 +391,7 @@ class FileManager:
         self.KeyManager.setFileStatus(shadowname, 'n')
         os.remove(encpath)
 
-        return encpath
+        return shadowname
 
     def pauseJob(self, shadowname: str):
         self.KeyManager.setFilePaused(shadowname)
@@ -337,18 +419,34 @@ class FileManager:
         dirs_key_shadowname = self.KeyManager.getBackupKey().getDirsShadowname()
         return self.FilesService.fileExists(dirs_key_shadowname)
 
-    def uploadEncryptFilesKey(self):
-        shadowname = self.KeyManager.getBackupKey().getFilesShadowname()
-        keydata = self.KeyManager.getFilesKey().compile()
+    def uploadEncryptKey(self, key: NessKey, shadowname: str = ""):
+        if shadowname == "":
+            shadowname = self.KeyManager.genShadowname()
+
+        keydata = key.compile()
         keydata = json.dumps(keydata)
         self.FilesService.uploadEncryptString(keydata, shadowname)
 
+        return shadowname
+
+    def uploadEncryptFilesKey(self):
+        shadowname = self.KeyManager.getBackupKey().getFilesShadowname()
+        self.uploadEncryptKey( self.KeyManager.getFilesKey(), shadowname)
 
     def uploadEncryptDirsKey(self):
         shadowname = self.KeyManager.getBackupKey().getDirsShadowname()
-        keydata = self.KeyManager.getDirectoriesKey().compile()
-        keydata = json.dumps(keydata)
-        self.FilesService.uploadEncryptString(keydata, shadowname)
+        self.uploadEncryptKey( self.KeyManager.getDirectoriesKey(), shadowname)
+
+    def uploadEncryptEncryptedKey(self, key: Encrypted):
+        return self.uploadEncryptKey(key)
+
+    def downoadDeryptEncryptedKey(self, url: str) -> Encrypted:
+        keydata = self.FilesService.downloadDecryptStringFromUrl(url)
+        keydata = json.loads(keydata)
+
+        key = self.KeyManager.createEncryptedKey('aes')
+        key.load(keydata)
+        self.KeyManager.saveKey(key)
 
     def downoadDeryptFilesKey(self):
         shadowname = self.KeyManager.getBackupKey().getFilesShadowname()
@@ -404,8 +502,8 @@ class FileManager:
             recreate = True
 
         if recreate:
-            self.NodesService = node(self.KeyManager.getUsersKey(), self.KeyManager.getNodesKey(), self.KeyManager.getMyNodesKey(), self.NodesService.output)
-            self.FilesService = files(self.KeyManager.getUsersKey(), self.KeyManager.getNodesKey(), self.KeyManager.getMyNodesKey(), self.KeyManager.getFilesKey(), self.KeyManager.getDirectoriesKey(), self.KeyManager.getBackupKey(), self.FilesService.output)
+            self.NodesService = self.fnNodesService()
+            self.FilesService = self.fnFilesService()
 
 
     def initKeys(self):

@@ -3,6 +3,7 @@ from NessKeys.interfaces.KeyMaker import KeyMaker
 
 
 from NessKeys.keys.Backup import Backup
+from NessKeys.keys.Settings import Settings
 from NessKeys.keys.BlockchainRPC import BlockchainRPC
 from NessKeys.keys.Faucet import Faucet
 from NessKeys.keys.Users import Users
@@ -24,6 +25,11 @@ class KeyMakerNess(KeyMaker):
 
         if vendor == "Privateness" and _type == 'backup' and _for == 'backup':
             key = Backup()
+            key.load(keydata)
+            return key
+
+        if vendor == "Privateness" and _type == 'settings' and _for == 'settings':
+            key = Settings()
             key.load(keydata)
             return key
 

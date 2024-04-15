@@ -30,7 +30,12 @@ class Container:
         return NodeManager(Container.KeyManager(), Container.NodeService())
 
     def FileManager() -> FileManager:
-        return FileManager(Container.KeyManager(), Container.NodeService(), Container.FilesService())
+        def ns ():
+             return Container.NodeService()
+        def fs ():
+             return Container.FilesService()
+             
+        return FileManager(Container.KeyManager(), ns, fs)
 
     def output() -> ioutput:
         return ConsoleOutput()

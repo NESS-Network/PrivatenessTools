@@ -169,9 +169,10 @@ keydata = {
         "verify": rand_str()
     },
     "url": rand_str(),
+    "network": 'inet',
     "nonce": rand_str(),
     "master-user": rand_str(),
-    "tags": [rand_str(),rand_str(),rand_str()],
+    "services": [rand_str(),rand_str(),rand_str()],
     "tariff": rand_float(),
 }
 
@@ -193,39 +194,43 @@ keydata = {
     "nodes": [
         {
             "url": rand_str(),
+            "network": 'inet',
             "public": rand_str(),
             "verify": rand_str(),
             "nonce": rand_str(),
             "master": rand_str(),
             "tariff": rand_int(),
-            "tags": [rand_str(),rand_str(),rand_str()]
+            "services": [rand_str(),rand_str(),rand_str()]
         },
         {
             "url": rand_str(),
+            "network": 'inet',
             "public": rand_str(),
             "verify": rand_str(),
             "nonce": rand_str(),
             "master": rand_str(),
             "tariff": rand_int(),
-            "tags": [rand_str(),rand_str(),rand_str()]
+            "services": [rand_str(),rand_str(),rand_str()]
         },
         {
             "url": rand_str(),
+            "network": 'inet',
             "public": rand_str(),
             "verify": rand_str(),
             "nonce": rand_str(),
             "master": rand_str(),
             "tariff": rand_int(),
-            "tags": [rand_str(),rand_str(),rand_str()]
+            "services": [rand_str(),rand_str(),rand_str()]
         },
         {
             "url": rand_str(),
+            "network": 'inet',
             "public": rand_str(),
             "verify": rand_str(),
             "nonce": rand_str(),
             "master": rand_str(),
             "tariff": rand_int(),
-            "tags": [rand_str(),rand_str(),rand_str()]
+            "services": [rand_str(),rand_str(),rand_str()]
         }
     ]
 }
