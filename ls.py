@@ -18,9 +18,9 @@ class Lister:
         print("*** Current directory listing")
         print("### USAGE:")
         print("#### List files (current directory)")
-        print(" python ls.py")
+        print(" ./ls")
         print("#### RAW list files (as they are stored on service node)")
-        print(" python ls.py raw")
+        print(" ./ls raw")
 
     def process(self):
 
@@ -34,10 +34,10 @@ class Lister:
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
+                print("RUN ./node set node-url")
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:
@@ -45,7 +45,7 @@ class Lister:
             except AuthError as e:
                 print("Responce verification error")
             except NodeNotSelected as e:
-                print("Current node is not set or not joined, try: python node.py sel <node_url>")
+                print("Current node is not set or not joined, try: ./node sel <node_url>")
 
         elif len(sys.argv) == 2 and sys.argv[1].lower() == 'raw':
             fm = Container.FileManager()
@@ -57,10 +57,10 @@ class Lister:
                 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
+                print("RUN ./node set node-url")
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:
@@ -68,7 +68,7 @@ class Lister:
             except AuthError as e:
                 print("Responce verification error")
             except NodeNotSelected as e:
-                print("Current node is not set or not joined, try: python node.py sel <node_url>")
+                print("Current node is not set or not joined, try: ./node sel <node_url>")
 
         else:
             self.__manual()

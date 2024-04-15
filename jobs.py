@@ -31,12 +31,12 @@ class Jobs:
         print("*** File jobs")
         print("### USAGE:")
         print("#### List jobs")
-        print(" python jobs.py ls")
-        print(" python jobs.py list")
+        print(" ./jobs ls")
+        print(" ./jobs list")
         print("#### Pause job")
-        print(" python jobs.py pause <file shadowname with current running job>")
+        print(" ./jobs pause <file shadowname with current running job>")
         print("#### Resume job")
-        print(" python jobs.py run <file shadowname with current paused job>")
+        print(" ./jobs run <file shadowname with current paused job>")
 
     def process(self):
 
@@ -57,13 +57,13 @@ class Jobs:
                 print("File '{}' does not exist".format(e.filename))
             except NodeNotSelected as e:
                 print("Node '{}' is not joined".format(e.node_url))
-                print("RUN python node.py sel node-url")
+                print("RUN ./node sel node-url")
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
+                print("RUN ./node set node-url")
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:
@@ -85,13 +85,13 @@ class Jobs:
                 print("File '{}' does not exist".format(e.filename))
             except NodeNotSelected as e:
                 print("Node '{}' is not joined".format(e.node_url))
-                print("RUN python node.py sel node-url")
+                print("RUN ./node sel node-url")
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
+                print("RUN ./node set node-url")
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:
@@ -114,13 +114,13 @@ class Jobs:
                 print("File '{}' does not exist".format(e.filename))
             except NodeNotSelected as e:
                 print("Node '{}' is not joined".format(e.node_url))
-                print("RUN python node.py sel node-url")
+                print("RUN ./node sel node-url")
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
+                print("RUN ./node set node-url")
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:

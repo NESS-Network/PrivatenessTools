@@ -10,4 +10,4 @@ if ARGS.args(['auth', str, str]):
     import NessKeys.tests.key_storage
     import NessKeys.tests.encrypted_storage
 else:
-    print('Authentication test: python run-tests.py auth <username> <node URL>')
+    print('Authentication test: ./run-tests auth <username> <node URL>')

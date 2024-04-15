@@ -20,7 +20,7 @@ class DIR:
     def __manual(self):
         print("*** File info")
         print("### USAGE:")
-        print(" python rmdir.py <Directory ID>")
+        print(" ./rmdir <Directory ID>")
 
     def process(self):
 
@@ -45,10 +45,10 @@ class DIR:
                 print("Directory {} does not exist".format(e.id))
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
+                print("RUN ./node set node-url")
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:
@@ -56,7 +56,7 @@ class DIR:
             except AuthError as e:
                 print("Responce verification error")
             except NodeNotSelected as e:
-                print("Current node is not set or not joined, try: python node.py sel <node_url>")
+                print("Current node is not set or not joined, try: ./node sel <node_url>")
 
         else:
             self.__manual()

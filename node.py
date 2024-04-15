@@ -22,10 +22,10 @@ class Noder:
         print("*** Node manipulation")
         print("### USAGE:")
         print("#### List all nodes (previously fetched from blockchain or remote node):")
-        print(" python node.py list all")
-        print(" python node.py ls all")
+        print(" ./node list all")
+        print(" ./node ls all")
         print("#### List all active nodes:")
-        print(" python node.py <list or ls> network service <+-s or +-t or +-q>")
+        print(" ./node <list or ls> network service <+-s or +-t or +-q>")
         print("  network: inet yggdrasil tor i2p")
         print("  service: files or prng")
         print("  sorting:")
@@ -35,13 +35,13 @@ class Noder:
         print("   + ascending order")
         print("   - descending order")
         print("#### Set current node (you will be registered in that node):")
-        print(" python node.py sel <node-name>")
+        print(" ./node sel <node-name>")
         print("#### Show about page")
-        print(" python node.py about <node-name>")
+        print(" ./node about <node-name>")
         print("#### Show info about node")
-        print(" python node.py info <node-name>")
+        print(" ./node info <node-name>")
         print("#### Show information about user on selected node")
-        print(" python node.py userinfo")
+        print(" ./node userinfo")
 
     def process(self):
         km = Container.KeyManager()
@@ -69,7 +69,7 @@ class Noder:
 
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
 
             print( type('') == str, type(0) == int )
 
@@ -114,7 +114,7 @@ class Noder:
 
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
 
         elif ARGS.args(['select', str]) or ARGS.args(['sel', str]) or ARGS.args(['sl', str]):
             try:
@@ -128,10 +128,10 @@ class Noder:
 
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except UsersKeyDoesNotExist as e:
                 print("Users key not found")
-                print("RUN user generation (python keygen.py user ......)")
+                print("RUN user generation (./keygen user ......)")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:
@@ -147,10 +147,10 @@ class Noder:
 
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except UsersKeyDoesNotExist as e:
                 print("Users key not found")
-                print("RUN user generation (python keygen.py user ......)")
+                print("RUN user generation (./keygen user ......)")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:
@@ -200,10 +200,10 @@ class Noder:
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
-                print("RUN python node.py select <node-url>")
+                print("RUN ./node select <node-url>")
             except NodeNotSelected as e:
                 print("Node not selected")
-                print("RUN python node.py select <node-url>")
+                print("RUN ./node select <node-url>")
             except UserNotFound as e:
                 print("User '{}' is not in users list".format(e.username))
             except NodeNotFound as e:

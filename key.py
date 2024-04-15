@@ -34,33 +34,26 @@ class Key:
         print("### USAGE:")
         print("### List Keys")
         print("#### Show all contents of keyfile")
-        print("  list [dirpath]")
+        print("./key list [dirpath]")
         print("### Show Key")
         print("#### Show all contents of keyfile")
-        print(" show <keyfile>")
+        print("./key show <keyfile>")
         print("#### show nvs name (for blockchain)")
-        print(" nvs <keyfile>")
+        print("./key nvs <keyfile>")
         print("#### Show <worm> for blockchain (if there are any)")
-        print(" worm <keyfile>")
-
-        print("### Initialize local user keyfile (~/.privateness-keys/localuser.key.json) from main user keyfile")
-        print(" init <username.key.json>")
-
-        print("### Initialize local node keyfile (node.json) from main node file")
-        print(" node <node-name.key.json>")
-
+        print("./key worm <keyfile>")
         print("#### Show all encrypted keys (if there are any)")
-        print(" list <keyfile>")
+        print("./key list <keyfile>")
         print("### Pack keyfiles into encrypted keyfile")
-        print(" pack <keyfile1,keyfile2, ...> <encrypted keyfile>")
+        print("./key pack <keyfile1,keyfile2, ...> <encrypted keyfile>")
         print("### Unpack keyfiles from encrypted keyfile")
-        print(" unpack <encrypted keyfile>")
+        print("./key unpack <encrypted keyfile>")
         print("### Save local keyfiles into encrypted keyfile")
-        print(" save <encrypted keyfile>")
+        print("./key save <encrypted keyfile>")
         print("### Restore local keyfiles from encrypted keyfile")
-        print(" restore <encrypted keyfile>")
+        print("./key restore <encrypted keyfile>")
         print("### Eraise keyfile or all local keyfiles (fill with 0)")
-        print(" eraise [encrypted keyfile]")
+        print("./key eraise [encrypted keyfile]")
 
         km = Container.KeyManager()
         print("\nKeys directory: " + km.directory)
@@ -170,17 +163,17 @@ class Key:
             except CrcCheck as e:
                 print("Wrong password (CRC check error)")
 
-        elif len(sys.argv) == 3 and sys.argv[1].lower() == 'init':
-            km = Container.KeyManager()
-            user_keyfile = sys.argv[2]
+        # elif len(sys.argv) == 3 and sys.argv[1].lower() == 'init':
+        #     km = Container.KeyManager()
+        #     user_keyfile = sys.argv[2]
 
-            km.init(user_keyfile)
+        #     km.init(user_keyfile)
 
-        elif len(sys.argv) == 3 and sys.argv[1].lower() == 'node':
-            km = Container.KeyManager()
-            node_keyfile = sys.argv[2]
+        # elif len(sys.argv) == 3 and sys.argv[1].lower() == 'node':
+        #     km = Container.KeyManager()
+        #     node_keyfile = sys.argv[2]
 
-            km.init_node(node_keyfile)
+        #     km.init_node(node_keyfile)
 
         elif len(sys.argv) == 2 and sys.argv[1].lower() == 'eraise':
             answer = input("Eraise all local keys y/n :")
