@@ -37,5 +37,5 @@ class Container:
              
         return FileManager(Container.KeyManager(), ns, fs)
 
-    def output() -> ioutput:
+    def output() -> output:
         return ConsoleOutput()
