@@ -7,6 +7,7 @@ from NessKeys.keys.Settings import Settings
 from NessKeys.keys.BlockchainRPC import BlockchainRPC
 from NessKeys.keys.Faucet import Faucet
 from NessKeys.keys.Users import Users
+from NessKeys.keys.User import User
 from NessKeys.keys.Node import Node
 from NessKeys.keys.Nodes import Nodes
 from NessKeys.keys.MyNodes import MyNodes
@@ -43,8 +44,13 @@ class KeyMakerNess(KeyMaker):
             key.load(keydata)
             return key
 
-        elif vendor == "Privateness" and _type == 'key' and _for == 'user':
+        elif vendor == "Privateness" and _type == 'key' and _for == 'user' and 'users' in keydata:
             key = Users()
+            key.load(keydata)
+            return key
+
+        elif vendor == "Privateness" and _type == 'key' and _for == 'user' and not ('users' in keydata):
+            key = User()
             key.load(keydata)
             return key
 

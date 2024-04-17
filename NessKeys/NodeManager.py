@@ -94,6 +94,14 @@ class NodeManager:
         print(" # User {} on node {} ".format(self.current_node_username, self.current_node_name) )
         return self.NodesService.userinfo()
 
+    def withdraw(self, coins: float, hours: int, to_addr: str):
+        self.initKeys()
+
+        if self.current_node_name == False:
+            raise NodeNotSelected()
+
+        return self.NodesService.withdraw(self.current_node_name, coins, hours, to_addr)
+
 
     def initKeys(self):
         self.KeyManager.initSettings()

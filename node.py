@@ -38,6 +38,8 @@ class Noder:
         print(" ./node sel <node-name>")
         print("#### Show about page")
         print(" ./node about <node-name>")
+        print("#### Withdraw funds from current node")
+        print(" ./node withdraw <coins> <hours> <to-address>")
         print("#### Show info about node")
         print(" ./node info <node-name>")
         print("#### Show information about user on selected node")
@@ -135,7 +137,7 @@ class Noder:
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:
-                print("Error on remote node ")
+                print("Error on remote node: {}".format(e.error))
             except AuthError as e:
                 print("Responce verification error")
 
@@ -154,7 +156,7 @@ class Noder:
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:
-                print("Error on remote node ")
+                print("Error on remote node: {}".format(e.error))
             except AuthError as e:
                 print("Responce verification error")
 
@@ -209,7 +211,29 @@ class Noder:
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:
-                print("Error on remote node ")
+                print("Error on remote node: {}".format(e.error))
+            except AuthError as e:
+                print("Responce verification error")
+
+        elif len(sys.argv) == 5 and sys.argv[1].lower() == 'withdraw':
+            try:
+                coins = float(sys.argv[2])
+                hours = int(sys.argv[3])
+                to_addr = sys.argv[4]
+                nm.withdraw(coins, hours, to_addr)
+
+            except MyNodesFileDoesNotExist as e:
+                print("MY NODES file not found.")
+                print("RUN ./node select <node-url>")
+            except NodeNotSelected as e:
+                print("Node not selected")
+                print("RUN ./node select <node-url>")
+            except UserNotFound as e:
+                print("User '{}' is not in users list".format(e.username))
+            except NodeNotFound as e:
+                print("NODE '{}' is not in nodes list".format(e.node))
+            except NodeError as e:
+                print("Error on remote node: {}".format(e.error))
             except AuthError as e:
                 print("Responce verification error")
 

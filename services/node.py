@@ -5,6 +5,7 @@ from NessKeys.keys.Users import Users
 from NessKeys.exceptions.NodeNotFound import NodeNotFound
 from NessKeys.exceptions.NodeError import NodeError
 from NessKeys.exceptions.AuthError import AuthError
+from NessKeys.exceptions.UserNotFound import UserNotFound
 
 import json
 from ness.NessAuth import NessAuth
@@ -81,6 +82,43 @@ class node:
         data = json.loads(result)
         
         return data['shadowname']
+
+    def withdraw(self, node_name: str, coins: float, hours: int, to_addr: str):
+        currentNode = self.Nodes.findNode(node_name)
+
+        if currentNode == False:
+            raise NodeNotFound(node_name)
+
+        shadowname = self.joined(node_name)
+
+        if shadowname == False:
+            raise UserNotFound(self.username)
+
+        wdata = json.dumps({'coins': coins, 'hours': hours, 'to_addr': to_addr})
+        url = currentNode['url'] + "/node/withdraw"
+
+        result = self.auth.get_by_two_way_encryption(
+            url, 
+            wdata, 
+            currentNode['public'], 
+            self.Users.getPrivateKey(), 
+            shadowname )
+
+        if result['result'] == 'error':
+            raise NodeError(result['error'])
+
+        if not self.auth.verify_two_way_result(currentNode['verify'], result):
+            raise AuthError(result['error'])
+
+        result = self.auth.decrypt_two_way_result(result, self.Users.getPrivateKey())
+
+        # result = json.loads(result)
+        
+        print(" *** Withdraw OK *** ")
+        print("Nodes answer: ")
+        print(result)
+
+        return True
 
     def joined(self, node_name: str):
         currentNode = self.Nodes.findNode(node_name)

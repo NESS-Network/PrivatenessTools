@@ -118,9 +118,12 @@ On client all keys are stored in `~/privateness-keys/*.json` directory, director
   Works on ed25519 for keypairs
   Adjustable entropy when generating private keys
 ### USAGE:
-#### Generate user Key
-  user <username> "coma,separated,tags" <Entropy level>
-  Example: $ ./keygen user user1 "Hello,World" 5
+#### Generate new user
+  user <username> <Entropy level>
+  Example: $ ./keygen user user1 5
+#### Generate user and add userinfo to bith users (~/.privateness-keys/users.key.json) and user (user.key.json) key
+  userkey <username> <Entropy level>
+  Example: $ ./keygen userkey user1 5
 #### Generate node Key
   node <Node name or URL> <Tariff> master-user-name "coma,separated,services" "network"  <Entropy level>
   Example: $ ./keygen node http://my-node.net 111 master "prng,files" inet 5
