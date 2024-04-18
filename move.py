@@ -9,6 +9,7 @@ from NessKeys.exceptions.NodeNotFound import NodeNotFound
 from NessKeys.exceptions.NodeError import NodeError
 from NessKeys.exceptions.AuthError import AuthError
 from NessKeys.exceptions.FileNotExist import FileNotExist
+from NessKeys.exceptions.NodeNotSelected import NodeNotSelected
 
 import requests
 from prettytable import PrettyTable
@@ -28,9 +29,10 @@ class DIR:
         elif len(sys.argv) == 3:
             fm = Container.FileManager()
             km = Container.KeyManager()
-            fm.initKeys()
 
             try:
+                fm.initKeys()
+                
                 ID = sys.argv[1]
                 parent_id = int(sys.argv[2])
 
@@ -59,6 +61,8 @@ class DIR:
                 print("Responce verification error")
             except FileNotExist as e:
                 print("File {} does not exist".format(e.filename))
+            except NodeNotSelected as e:
+                print("Current node is not set or not joined, try: ./node sel <node_url>")
 
         else:
             self.__manual()

@@ -9,6 +9,7 @@ from NessKeys.exceptions.NodeNotFound import NodeNotFound
 from NessKeys.exceptions.FileNotExist import FileNotExist
 from NessKeys.exceptions.NodeError import NodeError
 from NessKeys.exceptions.AuthError import AuthError
+from NessKeys.exceptions.NodeNotSelected import NodeNotSelected
 
 import requests
 from prettytable import PrettyTable
@@ -29,9 +30,9 @@ class Noder:
             file_shadowname = sys.argv[1]
 
             fm = Container.FileManager()
-            fm.initKeys()
         
             try:
+                fm.initKeys()
                 fm.fileinfo(file_shadowname)
                 fm.saveKeys()
 
@@ -49,6 +50,8 @@ class Noder:
                 print("Error on remote node: " + e.error)
             except AuthError as e:
                 print("Responce verification error")
+            except NodeNotSelected as e:
+                print("Current node is not set or not joined, try: ./node sel <node_url>")
 
         else:
             self.__manual()

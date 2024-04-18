@@ -638,17 +638,22 @@ class KeyManager:
             key = self.getMyNodesKey()
             current_node = key.getCurrentNode()
 
-            if len(current_node) == 0:
+            if len(current_node) == 0 or self.getCurrentUser() == False:
                 return False
             else:
                 return current_node[1]
         else:
             return False
 
-    def getCurrentNode(self) -> dict:
-        nodes = self.listNodes()
+    def getJoinedNodeName(self):
+        current_node = self.getCurrentNodeName()
+        if not self.hasNode(current_node):
+            current_node = False
 
-        return nodes[self.getCurrentNodeName()]
+        return current_node
+
+    def hasJoinedNode(self):
+        return self.getJoinedNodeName != False
 
     def hasNode(self, node_name: str):
         nkey = self.getMyNodesKey()

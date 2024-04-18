@@ -448,7 +448,7 @@ class files:
         currentNode = self.nodes.findNode(self.node_name)
         currentDir = self.directoriesKey.getCurrentDir(self.username, self.node_name)
         currentDirName = self.directoriesKey.getCurrentName(self.username, self.node_name)
-        
+
         if currentNode == False:
             raise NodeNotFound(self.node_name)
 

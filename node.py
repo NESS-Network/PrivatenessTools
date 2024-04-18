@@ -46,9 +46,7 @@ class Noder:
         print(" ./node userinfo")
 
     def process(self):
-        km = Container.KeyManager()
         nm = Container.NodeManager()
-        fm = Container.FileManager()
 
         if ARGS.args(['list', 'all']) or ARGS.args(['ls', 'all']):
             print(" *** Nodes")
@@ -73,8 +71,6 @@ class Noder:
                 print("NODES LIST file not found.")
                 print("RUN ./nodes-update node node-url")
 
-            print( type('') == str, type(0) == int )
-
             exit(0)
 
         if ARGS.args(['list']) or ARGS.args(['list', str]) or ARGS.args(['list', str, str]) or ARGS.args(['list', str, str, str]) or ARGS.args(['ls']) or ARGS.args(['ls', str]) or ARGS.args(['ls', str, str]) or ARGS.args(['ls', str, str, str]):
@@ -83,7 +79,9 @@ class Noder:
             t.align = 'c'
 
             try:
-                if len(sys.argv) == 3:
+                if len(sys.argv) == 2:
+                    nodes = nm.listNodesFull()
+                elif len(sys.argv) == 3:
                     nodes = nm.listNodesFull(network = sys.argv[2].lower())
                 elif len(sys.argv) == 4:
                     nodes = nm.listNodesFull(network = sys.argv[2].lower(), service=sys.argv[3].lower())
@@ -161,6 +159,7 @@ class Noder:
                 print("Responce verification error")
 
         elif len(sys.argv) == 2 and sys.argv[1].lower() == 'userinfo':
+            # TODO: ENodeNotSelected
             try:
                 info = nm.userinfo()
                 userinfo = info['userinfo']
@@ -216,6 +215,7 @@ class Noder:
                 print("Responce verification error")
 
         elif len(sys.argv) == 5 and sys.argv[1].lower() == 'withdraw':
+            # TODO: ENodeNotSelected
             try:
                 coins = float(sys.argv[2])
                 hours = int(sys.argv[3])

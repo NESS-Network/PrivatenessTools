@@ -11,6 +11,7 @@ from NessKeys.exceptions.NodeNotFound import NodeNotFound
 from NessKeys.exceptions.FileNotExist import FileNotExist
 from NessKeys.exceptions.NodeError import NodeError
 from NessKeys.exceptions.AuthError import AuthError
+from NessKeys.exceptions.NodeNotSelected import NodeNotSelected
 
 import requests
 import signal
@@ -43,9 +44,9 @@ class Noder:
                 path = ""
 
             fm = Container.FileManager()
-            fm.initKeys()
             
             try:
+                fm.initKeys()
                 fm.download(shadowname, path)
                 fm.saveKeys()
 
@@ -63,6 +64,8 @@ class Noder:
                 print("Error on remote node: " + e.error)
             except AuthError as e:
                 print("Responce verification error")
+            except NodeNotSelected as e:
+                print("Current node is not set or not joined, try: ./node sel <node_url>")
         else:
             self.__manual()
 

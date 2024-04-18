@@ -32,8 +32,6 @@ class Uploader:
     def __manual(self):
         print("*** File upload")
         print("### USAGE:")
-        # print("#### Upload file on service node")
-        # print(" ./upload <path to your file to upload>")
         print("#### Upload and encrypt file on service node")
         print(" ./upload enc <path to your file to upload>")
         print(" ./upload encrypt <path to your file to upload>")
@@ -54,6 +52,7 @@ class Uploader:
             
             try:
                 fm.UploadEncrypt(filepath)
+                fm.saveKeys()
 
             except FileNotExist as e:
                 print("File '{}' does not exist".format(e.filename))

@@ -8,6 +8,7 @@ from NessKeys.exceptions.NodesFileDoesNotExist import NodesFileDoesNotExist
 from NessKeys.exceptions.NodeNotFound import NodeNotFound
 from NessKeys.exceptions.NodeError import NodeError
 from NessKeys.exceptions.AuthError import AuthError
+from NessKeys.exceptions.NodeNotSelected import NodeNotSelected
 
 import requests
 from prettytable import PrettyTable
@@ -42,6 +43,8 @@ class Noder:
                 print("Error on remote node: " + e.error)
             except AuthError as e:
                 print("Responce verification error")
+            except NodeNotSelected as e:
+                print("Current node is not set or not joined, try: ./node sel <node_url>")
 
 upd = Noder()
 upd.process()
