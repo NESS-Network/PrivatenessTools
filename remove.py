@@ -18,9 +18,9 @@ class Noder:
     def __manual(self):
         print("*** Remove file")
         print("### USAGE:")
-        print(" python remove.py <file_shadowname>")
+        print(" ./remove <file_shadowname>")
         print("##### Remove local copy of file:")
-        print(" python remove.py local <file_shadowname>")
+        print(" ./remove local <file_shadowname>")
 
     def process(self):
 
@@ -40,10 +40,10 @@ class Noder:
                 print("File {} not found".format(e.filename))
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
+                print("RUN ./node set node-url")
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:
@@ -64,10 +64,10 @@ class Noder:
                 print("File {} not found".format(e.filename))
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
+                print("RUN ./node set node-url")
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:

@@ -17,7 +17,7 @@ class DIR:
     def __manual(self):
         print("*** Create directory")
         print("### USAGE:")
-        print(" python mkdir.py <parent directory ID> <directory name>")
+        print(" ./mkdir <parent directory ID> <directory name>")
 
     def process(self):
 
@@ -38,10 +38,10 @@ class DIR:
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
+                print("RUN ./node. set node-url")
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:
@@ -49,7 +49,7 @@ class DIR:
             except AuthError as e:
                 print("Responce verification error")
             except NodeNotSelected as e:
-                print("Current node is not set or not joined, try: python node.py sel <node_url>")
+                print("Current node is not set or not joined, try: ./node sel <node_url>")
 
         else:
             self.__manual()

@@ -19,17 +19,17 @@ class Noder:
         print("*** User list and user selection")
         print("### USAGE:")
         print("#### Show userlist")
-        print(" python user.py list|ls")
+        print(" ./user list|ls")
         print("#### Select user")
-        print(" python user.py sel|sl username")
+        print(" ./user sel|sl username")
         print("#### Check if current user is registered in blockchain")
-        print(" python user.py check|chk|ch")
+        print(" ./user check|chk|ch")
         print("#### Show current user nvs")
-        print(" python user.py nvs")
+        print(" ./user nvs")
         print("#### Show current user <WORM>")
-        print(" python user.py worm")
+        print(" ./user worm")
         print("#### Edit users file")
-        print(" python user.py edit [editor=nano]")
+        print(" ./user edit [editor=nano]")
 
     def print_userlist(self):
         manager = Container.KeyManager()
@@ -90,7 +90,7 @@ class Noder:
                     print ("User '{}' is NOT registered in blockchain".format(username))
             else:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
 
         elif len(sys.argv) == 2 and (sys.argv[1].lower() == 'help' or sys.argv[1].lower() == '-h'):
             self.__manual()

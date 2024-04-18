@@ -110,7 +110,7 @@ user@robocop:~/Code/PrivatenessTools$ ./fileinfo w.jpg
 On client all keys are stored in `~/privateness-keys/*.json` directory, directories are stored in `directories.json` and files are stored in `files.json`.
 
 ## Key generation
-### keygen.py
+### ./keygen
 ```
 *** PrivateNess KEY GENERATOR
 ### DESCRIPTION:
@@ -118,27 +118,30 @@ On client all keys are stored in `~/privateness-keys/*.json` directory, director
   Works on ed25519 for keypairs
   Adjustable entropy when generating private keys
 ### USAGE:
-#### Generate user
-  user <username> <Keypair count> "coma,separated,tags" <Entropy level>
-  Example: $ python keygen.py user user1 10 "Hello,World" 5
-#### Generate node
-  node <Node URL> <Tariff> master-user-name "coma,separated,tags"  <Entropy level>
-  Example: $ python keygen.py node http://my-node.net 111 master "Hello,World" 5
-#### Change user's keypair
-  change <User Key File> <new keypair index>
-  Example: $ python keygen.py change user.key.json 2
+#### Generate new user
+  user <username> <Entropy level>
+  Example: $ ./keygen user user1 5
+#### Generate user and add userinfo to bith users (~/.privateness-keys/users.key.json) and user (user.key.json) key
+  userkey <username> <Entropy level>
+  Example: $ ./keygen userkey user1 5
+#### Generate node Key
+  node <Node name or URL> <Tariff> master-user-name "coma,separated,services" "network"  <Entropy level>
+  Example: $ ./keygen node http://my-node.net 111 master "prng,files" inet 5
+#### Generate Faucet Key
+  faucet <Faucet URL> <Entropy level>
+  Example: $ ./keygen faucet http://www.faucet.net 5
+#### Generate Backup Key
+  backup <Entropy level>
+  Example: $ ./keygen backup 5
 #### Generate seed
   seed <length> <Entropy level>
-  Example: $ python keygen.py seed 32 5
-#### Show version
-  $ python codegen.py version
-  $ python codegen.py -v
+  Example: $ ./keygen seed 32 5
 #### Show this manual
-  $ python codegen.py help
-  $ python codegen.py -h
+  $ ./keygen help
+  $ ./keygen -h
 ```
 ## Key management
-### key.py
+### ./key
 ```
 *** PrivateNess KEY UTILITY
 ### DESCRIPTION:
@@ -146,172 +149,190 @@ On client all keys are stored in `~/privateness-keys/*.json` directory, director
 ### USAGE:
 ### List Keys
 #### Show all contents of keyfile
-  list {dirpath]
+./key list [dirpath]
 ### Show Key
 #### Show all contents of keyfile
- show <keyfile>
+./key show <keyfile>
 #### show nvs name (for blockchain)
- nvs <keyfile>
+./key nvs <keyfile>
 #### Show <worm> for blockchain (if there are any)
- worm <keyfile>
-### Initialize local user keyfile (~/.privateness-keys/localuser.key.json) from main user keyfile
- init <username.key.json>
-### Initialize local node keyfile (node.json) from main node file
- node <node-name.key.json>
+./key worm <keyfile>
 #### Show all encrypted keys (if there are any)
- list <keyfile>
+./key list <keyfile>
 ### Pack keyfiles into encrypted keyfile
- pack <keyfile1,keyfile2, ...> <encrypted keyfile>
+./key pack <keyfile1,keyfile2, ...> <encrypted keyfile>
 ### Unpack keyfiles from encrypted keyfile
- unpack <encrypted keyfile>
+./key unpack <encrypted keyfile>
 ### Save local keyfiles into encrypted keyfile
- save <encrypted keyfile>
+./key save <encrypted keyfile>
 ### Restore local keyfiles from encrypted keyfile
- restore <encrypted keyfile>
+./key restore <encrypted keyfile>
 ### Eraise keyfile or all local keyfiles (fill with 0)
- eraise [encrypted keyfile]
+./key eraise [encrypted keyfile]
+
+Keys directory: /home/user/.privateness-keys
 ```
 ## Node and user management
-### nodes-update.py
+### ./nodes-update
 ```
 *** Remote nodes update UTILITY
 ### DESCRIPTION:
   Service node list update from blockchain or remote node
 ### USAGE:
 #### Update from blockchain (if RPC connection settings olready exist)
- python nodes-update.py blockchain
- python nodes-update.py blk
-#### Update from blockchain (connect to Emercoin RPC and save connection settings)
- python nodes-update.py blk rpc-host rpc-port rpc-user rpc-password
+ ./nodes-update blockchain
+ ./nodes-update blk
 #### Update from remote node
- python nodes-update.py node <remote-node-url>
+ ./nodes-update node <remote-node-url>
 #### Update from remote node (random node fron existing nodes list)
- python nodes-update.py node
+ ./nodes-update node
 #### Auto update (try to update from random node, on error try to update from blockchain
- python nodes-update.py
+./nodes-update
 ```
-### node.py
+### ./node
 ```
 *** Node manipulation
 ### USAGE:
 #### List all nodes (previously fetched from blockchain or remote node):
- python node.py list
+ ./node list all
+ ./node ls all
+#### List all active nodes:
+ ./node <list or ls> network service <+-s or +-t or +-q>
+  network: inet yggdrasil tor i2p
+  service: files or prng
+  sorting:
+   +-s free slots
+   +-t tariff (coin hours)
+   +-q file storage quota
+   + ascending order
+   - descending order
 #### Set current node (you will be registered in that node):
- python node.py set <node-name>
+ ./node sel <node-name>
+#### Show about page
+ ./node about <node-name>
+#### Show info about node
+ ./node info <node-name>
+#### Show information about user on selected node
+ ./node userinfo
 ```
-### user.py
+### ./user
 ```
-*** User manipulation
+*** User list and user selection
 ### USAGE:
-#### Show information about current user (userinfo, balance, etc):
- python user.py
-#### Funds withdraw
- TODO ...
+#### Show userlist
+ ./user list|ls
+#### Select user
+ ./user sel|sl username
+#### Check if current user is registered in blockchain
+ ./user check|chk|ch
+#### Show current user nvs
+ ./user nvs
+#### Show current user <WORM>
+ ./user worm
+#### Edit users file
+ ./user edit [editor=nano]
 ```
-### quota.py
+### ./quota
 ```
 *** User file usage quota
- python quota.py
+ ./quota
 ```
 
 ## Files
 
-### upload.py
+### ./upload
 ```
-*** File upload and encrypt with resume support 
+*** File upload
 ### USAGE:
-#### Upload file on service node
- python upload.py <path to your file to upload>
 #### Upload and encrypt file on service node
- python upload.py enc <path to your file to upload>
- python upload.py encrypt <path to your file to upload>
+ ./upload enc <path to your file to upload>
+ ./upload encrypt <path to your file to upload>
 #### Upload file on service node with filename=shadowname
- python upload.py pub <path to your file to upload>
- python upload.py public <path to your file to upload>
+ ./upload <path to your file to upload>
+ ./upload pub <path to your file to upload>
+ ./upload public <path to your file to upload>
 ```
-### download.py
+### ./download
 ```
-*** File download and decrypt with resume support 
+*** File download
 ### USAGE:
 #### Download file from service node
- python download.py <file_shadowname> [path]
+ ./download <file_shadowname> [path]
 ```
-### jobs.py
+### ./jobs
 ```
 *** File jobs
 ### USAGE:
 #### List jobs
- python jobs.py ls
- python jobs.py list
+ ./jobs ls
+ ./jobs list
 #### Pause job
- python jobs.py pause <file shadowname with current running job>
+ ./jobs pause <file shadowname with current running job>
 #### Resume job
- python jobs.py run <file shadowname with current paused job>
+ ./jobs run <file shadowname with current paused job>
 ```
-### fileinfo.py
+### ./fileinfo
 ```
 *** File info
 ### USAGE:
- python fileinfo.py <file_shadowname>
+ ./fileinfo <file_shadowname>
 ```
-### move.py
+### ./move
 ```
 *** Move to other directory
 ### USAGE:
- python move.py <File shadowname or Directory ID> <Directory ID>
+ ./move <File shadowname or Directory ID> <Directory ID>
 ```
-### jobs.py
- TODO ...
 
 ## Directories
-### ls.py
+### ./ls
 ```
 *** Current directory listing
 ### USAGE:
 #### List files (current directory)
- python ls.py
+ ./ls
 #### RAW list files (as they are stored on service node)
- python ls.py raw
+ ./ls raw
 ```
-### cd.py
+### ./cd
 ```
 *** File info
 ### USAGE:
- python cd.py <Directory ID>
+ ./cd <Directory ID>
 ```
-### mkdir.py
+### ./mkdir
 ```
 *** Create directory
 ### USAGE:
- python mkdir.py <parent directory ID> <directory name>
+ ./mkdir <parent directory ID> <directory name>
 ```
-### move.py
+### ./move
 ```
 *** Move to other directory
 ### USAGE:
- python move.py <File shadowname or Directory ID> <Directory ID>
+ ./move <File shadowname or Directory ID> <Directory ID>
 ```
-### tree.py
+### ./tree
 ```
 *** Directory tree
 ### USAGE:
 #### List directories only
- python tree.py
+ ./tree
 #### List directories with files
- python tree.py files
+ ./tree files
 ```
-### sync.py
+### ./sync
  TODO ...
 
-### backup.py
+### ./backup
 ```
 *** PrivateNess keys BACKUP
 ### Show backup SEED
- python backup.py seed
+ ./backup seed
 ### Show backup ADDRESS
- python backup.py address
+ ./backup address
 ### Do backup to selected NODE or to FILE
- python backup.py backup [filename]
+ ./backup backup [filename]
 ### Restore backup from current NODE or from FILE
- python backup.py restore [filename]
+ ./backup restore [filename]
 ```

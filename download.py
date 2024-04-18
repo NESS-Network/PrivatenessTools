@@ -27,7 +27,7 @@ class Noder:
         print("*** File download")
         print("### USAGE:")
         print("#### Download file from service node")
-        print(" python download.py <file_shadowname> [path]")
+        print(" ./download <file_shadowname> [path]")
 
     def process(self):
 
@@ -51,10 +51,10 @@ class Noder:
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
+                print("RUN ./node set node-url")
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except FileNotExist as e:

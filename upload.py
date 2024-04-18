@@ -33,14 +33,14 @@ class Uploader:
         print("*** File upload")
         print("### USAGE:")
         # print("#### Upload file on service node")
-        # print(" python upload.py <path to your file to upload>")
+        # print(" ./upload <path to your file to upload>")
         print("#### Upload and encrypt file on service node")
-        print(" python upload.py enc <path to your file to upload>")
-        print(" python upload.py encrypt <path to your file to upload>")
+        print(" ./upload enc <path to your file to upload>")
+        print(" ./upload encrypt <path to your file to upload>")
         print("#### Upload file on service node with filename=shadowname")
-        print(" python upload.py <path to your file to upload>")
-        print(" python upload.py pub <path to your file to upload>")
-        print(" python upload.py public <path to your file to upload>")
+        print(" ./upload <path to your file to upload>")
+        print(" ./upload pub <path to your file to upload>")
+        print(" ./upload public <path to your file to upload>")
 
     def process(self):
 
@@ -59,13 +59,13 @@ class Uploader:
                 print("File '{}' does not exist".format(e.filename))
             except NodeNotSelected as e:
                 print("Node '{}' is not joined".format(e.node_url))
-                print("RUN python node.py sel node-url")
+                print("RUN ./node sel node-url")
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
+                print("RUN ./node set node-url")
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:
@@ -91,13 +91,13 @@ class Uploader:
                 print("File '{}' does not exist".format(e.filename))
             except NodeNotSelected as e:
                 print("Node '{}' is not joined".format(e.node_url))
-                print("RUN python node.py sel node-url")
+                print("RUN ./node sel node-url")
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
+                print("RUN ./node set node-url")
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:

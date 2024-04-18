@@ -24,6 +24,7 @@ import NessKeys.interfaces.NessKey as NessKey
 from NessKeys.keys.Files import Files as FilesKey
 from NessKeys.keys.Directories import Directories as DirectoriesKey
 from NessKeys.keys.Users import Users as Users
+from NessKeys.keys.User import User as User
 from NessKeys.keys.Node import Node as NodeKey
 # from NessKeys.keys.UserLocal import UserLocal
 from NessKeys.keys.Encrypted import Encrypted
@@ -101,56 +102,91 @@ class KeyManager:
 
         return key
 
-    def createUsersKey(self, username: str, tags: str, entropy: int):
-        userkey = Users()
-        filename = self.fileName(userkey.getFilename())
+    def createUsersKey(self, username: str, entropy: int):
+        userskey = Users()
+        filename = self.fileName(userskey.getFilename())
 
         keydata = self.__storage.restore(filename)
 
         if keydata != False:
-            userkey.load(keydata)
+            userskey.load(keydata)
 
         key_pair = self.__keypair(entropy)
 
         nonce = b64encode(get_random_bytes(16)).decode('utf-8')
-        tags = tags.split(',')
 
-        userkey.addNewUser(username, key_pair[0], key_pair[2], key_pair[1], nonce, tags)
+        userskey.addNewUser(username, key_pair[0], key_pair[2], key_pair[1], nonce)
 
-        self.__storage.save(userkey.compile(), filename)
+        self.__storage.save(userskey.compile(), filename)
 
-    def changeCurrentUser(self, username: str):
-        userkey = Users()
-        filename = self.fileName(userkey.getFilename())
+    def createUserKey(self, username: str, entropy: int):
+        userskey = Users()
+        filename = self.fileName(userskey.getFilename())
 
         keydata = self.__storage.restore(filename)
 
         if keydata != False:
-            userkey.load(keydata)
+            userskey.load(keydata)
 
-        if userkey.findUser(username) == False:
+        key_pair = self.__keypair(entropy)
+
+        nonce = b64encode(get_random_bytes(16)).decode('utf-8')
+
+        userskey.addNewUser(username, key_pair[0], key_pair[2], key_pair[1], nonce)
+
+        self.__storage.save(userskey.compile(), filename)
+
+        userkey = User()
+
+        userkey.load({
+            "filedata": {
+                "vendor": "Privateness",
+                "type": "key",
+                "for": "user"
+            },
+            "username": username,
+            "private": key_pair[0],
+            "public": key_pair[2],
+            "verify": key_pair[1],
+            "nonce": nonce,
+            "signatures": {},
+        })
+        print(userkey.compile(), userkey.getFilename())
+        self.__storage.save(userkey.compile(), userkey.getFilename())
+
+
+    def changeCurrentUser(self, username: str):
+        userskey = Users()
+        filename = self.fileName(userskey.getFilename())
+
+        keydata = self.__storage.restore(filename)
+
+        if keydata != False:
+            userskey.load(keydata)
+
+        if userskey.findUser(username) == False:
             raise UserNotFound(username)
 
-        userkey.setCurrentUser(username)
+        userskey.setCurrentUser(username)
 
-        self.__storage.save(userkey.compile(), filename)
+        self.__storage.save(userskey.compile(), filename)
 
     def showUsersKey(self) -> dict|bool:
-        userkey = Users()
-        filename = self.fileName(userkey.getFilename())
+        userskey = Users()
+        filename = self.fileName(userskey.getFilename())
 
         keydata = self.__storage.restore(filename)
 
         if keydata == False:
             return False
 
-        userkey.load(keydata)
+        userskey.load(keydata)
 
         return {
-            'current': userkey.getCurrentUser(),
-            'users': userkey.getUsers(),
-            'nvs': userkey.nvs(),
-            'worm': userkey.worm()
+            'current': userskey.getCurrentUser(),
+            'users': userskey.getUsers(),
+            'nvs': userskey.nvs(),
+            'worm': userskey.worm()
         }
 
     def getCurrentUser(self) -> str|bool:

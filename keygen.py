@@ -34,33 +34,34 @@ class Keygen:
         print("  Works on ed25519 for keypairs")
         print("  Adjustable entropy when generating private keys")
         print("### USAGE:")
-        print("#### Generate user Key")
-        print("  user <username> \"coma,separated,tags\" <Entropy level>")
-        print("  Example: $ python keygen.py user user1 \"Hello,World\" 5")
+        print("#### Generate new user")
+        print("  user <username> <Entropy level>")
+        print("  Example: $ ./keygen user user1 5")
+        print("#### Generate user and add userinfo to bith users (~/.privateness-keys/users.key.json) and user (user.key.json) key")
+        print("  userkey <username> <Entropy level>")
+        print("  Example: $ ./keygen userkey user1 5")
         print("#### Generate node Key")
         print("  node <Node name or URL> <Tariff> master-user-name \"coma,separated,services\" \"network\"  <Entropy level>")
-        print("  Example: $ python keygen.py node http://my-node.net 111 master \"prng,files\" inet 5")
+        print("  Example: $ ./keygen node http://my-node.net 111 master \"prng,files\" inet 5")
         print("#### Generate Faucet Key")
         print("  faucet <Faucet URL> <Entropy level>")
-        print("  Example: $ python keygen.py faucet http://www.faucet.net 5")
+        print("  Example: $ ./keygen faucet http://www.faucet.net 5")
         print("#### Generate Backup Key")
         print("  backup <Entropy level>")
-        print("  Example: $ python keygen.py backup 5")
+        print("  Example: $ ./keygen backup 5")
         print("#### Generate seed")
         print("  seed <length> <Entropy level>")
-        print("  Example: $ python keygen.py seed 32 5")        
+        print("  Example: $ ./keygen seed 32 5")        
         print("#### Show this manual")
-        print("  $ python keygen.py help")
-        print("  $ python keygen.py -h")
+        print("  $ ./keygen help")
+        print("  $ ./keygen -h")
 
     def process(self):
-        if ARGS.args(['user', str, str, str]):
+        if ARGS.args(['user', str, str]):
             username = sys.argv[2]
 
-            tags = sys.argv[3]
-
-            if self.__is_integer(ARGS.arg(4)):
-                entropy = int(ARGS.arg(4))
+            if self.__is_integer(ARGS.arg(3)):
+                entropy = int(ARGS.arg(3))
 
                 if entropy < 1:
                     entropy = 1
@@ -70,7 +71,22 @@ class Keygen:
 
             manager = Container.KeyManager()
 
-            return manager.createUsersKey(username, tags, entropy)
+            return manager.createUsersKey(username, entropy)
+        elif ARGS.args(['userkey', str, str]):
+            username = sys.argv[2]
+
+            if self.__is_integer(ARGS.arg(3)):
+                entropy = int(ARGS.arg(3))
+
+                if entropy < 1:
+                    entropy = 1
+            else:
+                print("<Entropy level> must be integer")
+                return False
+
+            manager = Container.KeyManager()
+
+            return manager.createUserKey(username, entropy)
 
         elif ARGS.args(['node', str, str, str, str, str, str]):
             url = sys.argv[2]

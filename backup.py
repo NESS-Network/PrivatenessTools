@@ -22,13 +22,13 @@ class Backup:
     def __manual(self):
         print("*** PrivateNess keys BACKUP")
         print("### Show backup SEED")
-        print(" python backup.py seed")
+        print(" ./backup seed")
         print("### Show backup ADDRESS")
-        print(" python backup.py address")
+        print(" ./backup address")
         print("### Do backup to selected NODE or to FILE")
-        print(" python backup.py backup [filename]")
+        print(" ./backup backup [filename]")
         print("### Restore backup from current NODE or from FILE")
-        print(" python backup.py restore [filename]")
+        print(" ./backup restore [filename]")
 
     def process(self):
         if ARGS.args(['seed']):

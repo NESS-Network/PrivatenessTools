@@ -115,8 +115,7 @@ keydata = {
                 "public": rand_str(),
                 "verify": rand_str(),
                 "nonce": rand_str(),
-                "signatures": {'human': rand_str(), 'company': rand_str()},
-                "tags": [rand_str(),rand_str(),rand_str()]
+                "signatures": {'human': rand_str(), 'company': rand_str()}
         },
         'kuser1': {
                 "username": 'kuser1',
@@ -124,8 +123,7 @@ keydata = {
                 "public": rand_str(),
                 "verify": rand_str(),
                 "nonce": rand_str(),
-                "signatures": {'human': rand_str(), 'company': rand_str()},
-                "tags": [rand_str(),rand_str(),rand_str()]
+                "signatures": {'human': rand_str(), 'company': rand_str()}
         },
         'kuser2': {
                 "username": 'kuser2',
@@ -133,8 +131,7 @@ keydata = {
                 "public": rand_str(),
                 "verify": rand_str(),
                 "nonce": rand_str(),
-                "signatures": {'human': rand_str(), 'company': rand_str()},
-                "tags": [rand_str(),rand_str(),rand_str()]
+                "signatures": {'human': rand_str(), 'company': rand_str()}
         },
         'kuser3': {
                 "username": 'kuser3',
@@ -142,8 +139,7 @@ keydata = {
                 "public": rand_str(),
                 "verify": rand_str(),
                 "nonce": rand_str(),
-                "signatures": {'human': rand_str(), 'company': rand_str()},
-                "tags": [rand_str(),rand_str(),rand_str()]
+                "signatures": {'human': rand_str(), 'company': rand_str()}
         }
     }
 }
@@ -173,7 +169,7 @@ keydata = {
     "nonce": rand_str(),
     "master-user": rand_str(),
     "services": [rand_str(),rand_str(),rand_str()],
-    "tariff": rand_float(),
+    "tariff": rand_int(),
 }
 
 key = Node()

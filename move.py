@@ -18,7 +18,7 @@ class DIR:
     def __manual(self):
         print("*** Move to other directory")
         print("### USAGE:")
-        print(" python move.py <File shadowname or Directory ID> <Directory ID>")
+        print(" ./move <File shadowname or Directory ID> <Directory ID>")
 
     def process(self):
 
@@ -47,10 +47,10 @@ class DIR:
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
-                print("RUN python node.py set node-url")
+                print("RUN ./node set node-url")
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except NodeNotFound as e:
                 print("NODE '{}' is not in nodes list".format(e.node))
             except NodeError as e:

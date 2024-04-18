@@ -32,7 +32,7 @@ class Users(NessKey):
             "verify": str,
             "nonce": str,
             "signatures": dict,
-            "tags": list
+            # "tags": list
         }
         
         DeepChecker.check('User key check (users)', keydata, map, 2)
@@ -54,7 +54,7 @@ class Users(NessKey):
             "users": self.__users
         }
 
-        userdata["worm"] = self.__wrm(userdata)
+        # userdata["worm"] = self.__wrm(userdata)
 
         return userdata
 
@@ -75,7 +75,7 @@ class Users(NessKey):
         return "worm:user:ness:" + self.__current
         
     def print(self):
-        return "Privateness User Key <{}>".format(self.__current)
+        return "Privateness Users Key <{}>".format(self.__current)
 
     def getFilename(self):
         return "users.key.json"
@@ -94,14 +94,13 @@ class Users(NessKey):
 
         for sig in sigs:
             signatures += \
-                "{}<signature type=\"{}\">{}</siuserkeygnature>{}".format(tab3, sig, sigs[sig], linesep)
+                "{}<signature type=\"{}\">{}</signature>{}".format(tab3, sig, sigs[sig], linesep)
 
         worm = "<worm>" + linesep + \
             tab + "<user type=\"ness\" " \
                + " public=\"" + self.__users[self.__current]["public"] + "\"" \
                + " verify=\"" + self.__users[self.__current]["verify"] + "\"" \
-               + " nonce=\"" + self.__users[self.__current]["nonce"] + "\"" \
-               + " tags=\"" + ','.join(self.__users[self.__current]["tags"]) + "\">" + linesep + \
+               + " nonce=\"" + self.__users[self.__current]["nonce"] + "\">"  + linesep + \
             tab2 + "<signatures> " + linesep + \
             signatures + \
             tab2 + "</signatures>" + linesep + \
@@ -130,7 +129,7 @@ class Users(NessKey):
         if username in self.__users:
             self.__current = username
 
-    def addNewUser(self, username: str, private_key: str, public_key: str, verify_key: str, nonce: str, tags: list):
+    def addNewUser(self, username: str, private_key: str, public_key: str, verify_key: str, nonce: str):
         if self.__users == False:
             self.__users = {}
 
@@ -144,7 +143,7 @@ class Users(NessKey):
         self.__users[self.__current]["public"] = public_key
         self.__users[self.__current]["verify"] = verify_key
         self.__users[self.__current]["nonce"] = nonce
-        self.__users[self.__current]["tags"] = tags
+        # self.__users[self.__current]["tags"] = tags
         self.__users[self.__current]["signatures"] = {}
 
     def getUsername(self):
@@ -174,8 +173,8 @@ class Users(NessKey):
         else:
             return self.__users[username]["nonce"]
 
-    def getTags(self):
-        return self.__users[self.__current]["tags"]
+    # def getTags(self):
+    #     return self.__users[self.__current]["tags"]
 
     def getSignatures(self):
         return self.__users[self.__current]["signatures"]
@@ -192,8 +191,8 @@ class Users(NessKey):
     def setNonce(self, nonce: str,):
         self.__users[self.__current]["nonce"] = nonce
 
-    def setTags(self, tags: list):
-        self.__users[self.__current]["tags"] = tags
+    # def setTags(self, tags: list):
+    #     self.__users[self.__current]["tags"] = tags
 
     def addSignature(self, name: str, sig: str):
         self.__users[self.__current]["signatures"][name] = sig

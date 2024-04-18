@@ -45,16 +45,16 @@ class NodesUpdater:
         print("  Service node list update from blockchain or remote node")
         print("### USAGE:")
         print("#### Update from blockchain (if RPC connection settings olready exist)")
-        print(" python nodes-update.py blockchain")
-        print(" python nodes-update.py blk")
+        print(" ./nodes-update blockchain")
+        print(" ./nodes-update blk")
         # print("#### Update from blockchain (connect to Emercoin RPC and save connection settings)")
-        # print(" python nodes-update.py blk rpc-host rpc-port rpc-user rpc-password")
+        # print(" ./nodes-update blk rpc-host rpc-port rpc-user rpc-password")
         print("#### Update from remote node")
-        print(" python nodes-update.py node <remote-node-url>")
+        print(" ./nodes-update node <remote-node-url>")
         print("#### Update from remote node (random node fron existing nodes list)")
-        print(" python nodes-update.py node")
+        print(" ./nodes-update node")
         print("#### Auto update (try to update from random node, on error try to update from blockchain")
-        print(" python nodes-update.py")
+        print("./nodes-update")
 
     def listNodesFromBlockchain(self, ip: str, port: int, user: str, password: str) -> dict:
         blk = BlockchainRPC(ip, port, user, password)
@@ -163,9 +163,9 @@ class NodesUpdater:
                 print ("* Node error '{}'".format(e.error))
             # except NodesFileDoesNotExist as e:
             #     print("NODES LIST file not found.")
-            #     print("RUN python nodes-update.py node node-url")
+            #     print("RUN ./nodes-update node node-url")
             #     print("OR")
-            #     print("RUN python nodes-update.py blk rpc-host rpc-port rpc-user rpc-password")
+            #     print("RUN ./nodes-update blk rpc-host rpc-port rpc-user rpc-password")
             except Exception as e:
                 print ("* Error '{}'".format(str(e)))
 
@@ -175,7 +175,7 @@ class NodesUpdater:
                 self.updateNodesFromBlockchain()
             except BlockchainSettingsFileNotExist as e:
                 print("Blockchain settings not found.")
-                print("RUN python nodes-update.py blk rpc-host rpc-port rpc-user rpc-password")
+                print("RUN ./nodes-update blk rpc-host rpc-port rpc-user rpc-password")
             except Exception as e:
                 if str(e) == 'Expecting value: line 1 column 1 (char 0)':
                     print (" * Authentication error")
@@ -231,7 +231,7 @@ class NodesUpdater:
                 self.updateNodesFromRemoteNode()
             except NodesFileDoesNotExist as e:
                 print("NODES LIST file not found.")
-                print("RUN python nodes-update.py node node-url")
+                print("RUN ./nodes-update node node-url")
             except EmptyNodesList as e:
                 print ("* Empty nodes list in nodes.json file")
             except NodeError as e:
