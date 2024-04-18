@@ -494,7 +494,7 @@ class KeyManager:
 
 
     def hasBlockchainSettings(self) -> dict:
-        return self.fileExists(BlockchainRPC.filename())
+        return self.fileExists(BlockchainRpcKey.filename())
 
 
     def hasNodesList(self) -> bool:

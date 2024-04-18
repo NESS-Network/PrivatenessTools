@@ -12,7 +12,7 @@ from NessKeys.KeyMakerNess import KeyMakerNess
 from NessKeys.FileManager import FileManager
 from NessKeys.NodeManager import NodeManager
 from NessKeys.ConsoleOutput import ConsoleOutput
-from NessKeys.interfaces.output import output
+from NessKeys.interfaces.output import output as ioutput
 from services.node import node
 from services.files import files
 
@@ -44,7 +44,7 @@ class Container:
 
         return FileManager(self.KeyManager(), ns, fs)
 
-    def output(self) -> output:
+    def output(self) -> ioutput:
         return ConsoleOutput()
 
     def get_node_list(self):
