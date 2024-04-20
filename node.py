@@ -232,6 +232,7 @@ class Noder:
 
                     for username in info['payments']:
                         payments = info['payments'][username]
+                        payments.sort(key=lambda payment: payment['date'], reverse=True)
                         for payment in payments:
                             if username != me:
                                 t.add_row([payment['date'], username, payment['hours'], payment['coin_hours_payed'], payment['txid']])
