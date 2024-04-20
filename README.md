@@ -119,26 +119,26 @@ On client all keys are stored in `~/privateness-keys/*.json` directory, director
   Adjustable entropy when generating private keys
 ### USAGE:
 #### Generate new user
-  user <username> <Entropy level>
+  ./keygen user <username> <Entropy level>
   Example: $ ./keygen user user1 5
 #### Generate user and add userinfo to bith users (~/.privateness-keys/users.key.json) and user (user.key.json) key
-  userkey <username> <Entropy level>
+  ./keygen userkey <username> <Entropy level>
   Example: $ ./keygen userkey user1 5
 #### Generate node Key
-  node <Node name or URL> <Tariff> master-user-name "coma,separated,services" "network"  <Entropy level>
+  ./keygen node <Node name or URL> <Tariff> master-user-name "coma,separated,services" "network"  <Entropy level>
   Example: $ ./keygen node http://my-node.net 111 master "prng,files" inet 5
 #### Generate Faucet Key
-  faucet <Faucet URL> <Entropy level>
+  ./keygen faucet <Faucet URL> <Entropy level>
   Example: $ ./keygen faucet http://www.faucet.net 5
 #### Generate Backup Key
-  backup <Entropy level>
+  ./keygen backup <Entropy level>
   Example: $ ./keygen backup 5
 #### Generate seed
-  seed <length> <Entropy level>
+  ./keygen seed <length> <Entropy level>
   Example: $ ./keygen seed 32 5
 #### Show this manual
-  $ ./keygen help
-  $ ./keygen -h
+  ./keygen help
+  ./keygen -h
 ```
 ## Key management
 ### ./key
@@ -219,6 +219,8 @@ Keys directory: /home/user/.privateness-keys
 ```
 *** User list and user selection
 ### USAGE:
+#### Show current user and current node
+ ./user
 #### Show userlist
  ./user list|ls
 #### Select user

@@ -8,6 +8,7 @@ from NessKeys.exceptions.NodesFileDoesNotExist import NodesFileDoesNotExist
 from NessKeys.exceptions.NodeNotFound import NodeNotFound
 from NessKeys.exceptions.NodeError import NodeError
 from NessKeys.exceptions.AuthError import AuthError
+from NessKeys.exceptions.NodeNotSelected import NodeNotSelected
 
 import requests
 
@@ -26,9 +27,9 @@ class Lister:
         if len(sys.argv) == 1:
             fm = Container.FileManager()
             km = Container.KeyManager()
-            fm.initKeys()
 
             try:
+                fm.initKeys()
                 tree = fm.tree()
                 current_dir = km.getCurrentDir()
 
@@ -66,13 +67,15 @@ class Lister:
                 print("Error on remote node: " + e.error)
             except AuthError as e:
                 print("Responce verification error")
+            except NodeNotSelected as e:
+                print("Current node is not set or not joined, try: ./node sel <node_url>")
 
         elif len(sys.argv) == 2 and sys.argv[1].lower() == 'files':
             fm = Container.FileManager()
             km = Container.KeyManager()
-            fm.initKeys()
             
             try:
+                fm.initKeys()
                 tree = fm.tree()
                 current_dir = km.getCurrentDir()
 
@@ -113,6 +116,8 @@ class Lister:
                 print("Error on remote node: " + e.error)
             except AuthError as e:
                 print("Responce verification error")
+            except NodeNotSelected as e:
+                print("Current node is not set or not joined, try: ./node sel <node_url>")
 
         else:
             self.__manual()

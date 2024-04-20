@@ -154,23 +154,6 @@ class KeyManager:
         print(userkey.compile(), userkey.getFilename())
         self.__storage.save(userkey.compile(), userkey.getFilename())
 
-
-    def changeCurrentUser(self, username: str):
-        userskey = Users()
-        filename = self.fileName(userskey.getFilename())
-
-        keydata = self.__storage.restore(filename)
-
-        if keydata != False:
-            userskey.load(keydata)
-
-        if userskey.findUser(username) == False:
-            raise UserNotFound(username)
-
-        userskey.setCurrentUser(username)
-
-        self.__storage.save(userskey.compile(), filename)
-
     def showUsersKey(self) -> dict|bool:
         userskey = Users()
         filename = self.fileName(userskey.getFilename())
@@ -188,6 +171,34 @@ class KeyManager:
             'nvs': userskey.nvs(),
             'worm': userskey.worm()
         }
+
+
+    def changeCurrentUser(self, username: str):
+        userskey = Users()
+        filename = self.fileName(userskey.getFilename())
+
+        keydata = self.__storage.restore(filename)
+
+        userskey.load(keydata)
+
+        if userskey.findUser(username) == False:
+            raise UserNotFound(username)
+
+        userskey.setCurrentUser(username)
+
+        self.__storage.save(userskey.compile(), filename)
+
+        myNodesKey = MyNodes()
+        filename = self.fileName(myNodesKey.getFilename())
+
+        keydata = self.__storage.restore(filename)
+
+        myNodesKey.load(keydata)
+
+        node_url = myNodesKey.getCurrentNodeUrl()
+        myNodesKey.changeCurrentNode(username, node_url)
+
+        self.__storage.save(myNodesKey.compile(), filename)
 
     def getCurrentUser(self) -> str|bool:
         userkey = Users()
@@ -638,17 +649,22 @@ class KeyManager:
             key = self.getMyNodesKey()
             current_node = key.getCurrentNode()
 
-            if len(current_node) == 0:
+            if len(current_node) == 0 or self.getCurrentUser() == False:
                 return False
             else:
                 return current_node[1]
         else:
             return False
 
-    def getCurrentNode(self) -> dict:
-        nodes = self.listNodes()
+    def getJoinedNodeName(self):
+        current_node = self.getCurrentNodeName()
+        if not self.hasNode(current_node):
+            current_node = False
 
-        return nodes[self.getCurrentNodeName()]
+        return current_node
+
+    def hasJoinedNode(self):
+        return self.getJoinedNodeName != False
 
     def hasNode(self, node_name: str):
         nkey = self.getMyNodesKey()

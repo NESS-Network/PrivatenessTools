@@ -30,8 +30,8 @@ class NodeManager:
     def listNodesFull(self, network = '', service = '', sort = '', reverse_sort = False):
         self.initKeys()
         nodes = self.listNodes()
-        current_node = self.getCurrentNodeName()
-        nodes = self.KeyManager.getNodesList()
+        current_node = self.KeyManager.getJoinedNodeName()
+
         Result = []
 
         def fn_sort(row):

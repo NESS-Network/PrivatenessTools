@@ -34,6 +34,8 @@ class FileManager:
         self.NodesService = self.fnNodesService()
         self.FilesService = self.fnFilesService()
 
+        self.current_node_name = self.KeyManager.getCurrentNodeName()
+
     def join(self, username: str = "", node_url: str = ""):        
         self.initKeys()
         
@@ -99,8 +101,8 @@ class FileManager:
         print("Node URL {} is joined with SHADOWNAME {}".format(node_url, shadowname))
 
     def ls(self):
-        if not self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
-            raise NodeNotSelected()
+        if not self.NodesService.joined(self.current_node_name):
+            raise NodeNotSelected(self.current_node_name)
 
         files = self.FilesService.ls()
 
@@ -116,8 +118,8 @@ class FileManager:
             print(t)
 
     def raw(self):
-        if not self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
-            raise NodeNotSelected()
+        if not self.NodesService.joined(self.current_node_name):
+            raise NodeNotSelected(self.current_node_name)
 
         files = self.FilesService.raw()
 
@@ -131,34 +133,34 @@ class FileManager:
             print(t)
 
     def cd(self, ID: int):
-        if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
+        if self.NodesService.joined(self.current_node_name):
             self.KeyManager.cd(ID)
         else:
-            raise NodeNotSelected()
+            raise NodeNotSelected(self.current_node_name)
 
     def up(self):
-        if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
+        if self.NodesService.joined(self.current_node_name):
             self.KeyManager.up()
         else:
-            raise NodeNotSelected()
+            raise NodeNotSelected(self.current_node_name)
 
     def top(self):
-        if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
+        if self.NodesService.joined(self.current_node_name):
             self.KeyManager.top()
         else:
-            raise NodeNotSelected()
+            raise NodeNotSelected(self.current_node_name)
 
     def moveDir(self, ID: int, new_parent_id: int):
-        if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
+        if self.NodesService.joined(self.current_node_name):
             self.KeyManager.moveDir(ID, new_parent_id)
         else:
-            raise NodeNotSelected()   
+            raise NodeNotSelected(self.current_node_name)   
 
     def moveFile(self, shadowname: str, directory: int):
-        if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
+        if self.NodesService.joined(self.current_node_name):
             self.KeyManager.moveFile(shadowname, directory)
         else:
-            raise NodeNotSelected()   
+            raise NodeNotSelected(self.current_node_name)   
 
     def move(self, ID: str, directory: int):
         dir = self.KeyManager.getDirectory(directory)
@@ -166,7 +168,7 @@ class FileManager:
         if dir == False:
             raise DirectoryNotEmpty(dir['name'])
 
-        if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
+        if self.NodesService.joined(self.current_node_name):
             if self.KeyManager.isFile(ID):
                 self.KeyManager.moveFile(ID, directory)
             else:
@@ -194,7 +196,7 @@ class FileManager:
             print("File {} does not exist".format(shadowname))
 
     def remove(self, file_shadowname: str):
-        if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
+        if self.NodesService.joined(self.current_node_name):
             self.FilesService.remove(file_shadowname)
             self.KeyManager.removeFile(file_shadowname)
 
@@ -207,20 +209,20 @@ class FileManager:
             self.KeyManager.clearFilePath(file_shadowname)
 
     def rename(self, ID: int, new_name: str):
-        if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
+        if self.NodesService.joined(self.current_node_name):
             self.KeyManager.rename(ID, new_name)
         else:
-            raise NodeNotSelected()   
+            raise NodeNotSelected(self.current_node_name)   
 
 
     def mkdir(self, parent_id: int, name: str) -> int:
-        if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
+        if self.NodesService.joined(self.current_node_name):
             self.KeyManager.mkdir(parent_id, name)
         else:
-            raise NodeNotSelected()    
+            raise NodeNotSelected(self.current_node_name)    
 
     def rmdir(self, ID: str):
-        if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
+        if self.NodesService.joined(self.current_node_name):
             if int(ID) == 0:
                 return False
 
@@ -234,10 +236,10 @@ class FileManager:
 
             self.KeyManager.rmdir(ID)
         else:
-            raise NodeNotSelected()         
+            raise NodeNotSelected(self.current_node_name)         
 
     def jobs(self):
-        if self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
+        if self.NodesService.joined(self.current_node_name):
             jobs = self.FilesService.jobs()
 
             t = PrettyTable(['Action', 'Shadowname', 'Filename', 'Size', 'Status', 'Share'])
@@ -249,13 +251,13 @@ class FileManager:
 
             print(t)
         else:
-            raise NodeNotSelected()
+            raise NodeNotSelected(self.current_node_name)
 
 
 
     def quota(self):
-        if not self.NodesService.joined(self.KeyManager.getCurrentNodeName()):
-            raise NodeNotSelected()
+        if not self.NodesService.joined(self.current_node_name):
+            raise NodeNotSelected(self.current_node_name)
 
         quota = self.FilesService.quota()
 
@@ -312,7 +314,7 @@ class FileManager:
         node_name = self.KeyManager.getCurrentNodeName()
 
         if not self.NodesService.joined(node_name):
-            raise NodeNotSelected()
+            raise NodeNotSelected(self.current_node_name)
 
         file = self.KeyManager.getFile(shadowname)
 
@@ -475,8 +477,9 @@ class FileManager:
         return self.FilesService.fileExists(shadowname)
 
     def saveFilesAndDirectoriesFile(self):
-        self.uploadEncryptDirsKey()
-        self.uploadEncryptFilesKey()
+        if self.KeyManager.getCurrentNodeName():
+            self.uploadEncryptDirsKey()
+            self.uploadEncryptFilesKey()
 
     def initDirectoriesAndFilesKey(self):
         recreate = False
@@ -484,7 +487,7 @@ class FileManager:
         if self.KeyManager.hasDirectoriesKey():
             self.KeyManager.refreshDirectoriesKey()
         else:
-            if self.remoteDirsFileExist():
+            if self.NodesService.joined(self.current_node_name) and self.remoteDirsFileExist():
                 self.downoadDeryptDirsKey()
             else:
                 self.KeyManager.initDirectoriesKey()
@@ -494,7 +497,7 @@ class FileManager:
         if self.KeyManager.hasFilesKey():
             self.KeyManager.refreshFilesKey()
         else:
-            if self.remoteFilesFileExist():
+            if self.NodesService.joined(self.current_node_name) and self.remoteFilesFileExist():
                 self.downoadDeryptFilesKey()
             else:
                 self.KeyManager.initFilesKey()
@@ -513,4 +516,7 @@ class FileManager:
         self.initDirectoriesAndFilesKey()
 
     def saveKeys(self):
+        if not self.NodesService.joined(self.current_node_name):
+            raise NodeNotSelected(self.current_node_name)
+            
         self.saveFilesAndDirectoriesFile()

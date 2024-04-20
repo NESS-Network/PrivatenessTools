@@ -114,8 +114,9 @@ class files:
             {'filename': self.auth.encrypt(file_shadowname, currentNode['public'])})
         
         if result['result'] == 'error':
-            self.output.line(" ~~~ touch command FAILED ~~~ ")
-            self.output.line(result['error'])
+            # self.output.line(" ~~~ touch command FAILED ~~~ ")
+            # self.output.line(result['error'])
+            raise NodeError(result['error'])
         else:
             if self.auth.verify_two_way_result(currentNode['verify'], result):
                 self.output.line(" *** File touch *** ")
@@ -448,7 +449,7 @@ class files:
         currentNode = self.nodes.findNode(self.node_name)
         currentDir = self.directoriesKey.getCurrentDir(self.username, self.node_name)
         currentDirName = self.directoriesKey.getCurrentName(self.username, self.node_name)
-        
+
         if currentNode == False:
             raise NodeNotFound(self.node_name)
 
@@ -598,6 +599,7 @@ class files:
             raise NodeNotFound(self.node_name)
 
         user_shadowname = myNode['shadowname']
+        # print(self.username, self.node_name, myNode)
 
         url = currentNode['url'] + "/files/rewrite"
 
@@ -610,8 +612,10 @@ class files:
             {'filename': self.auth.encrypt(file_shadowname, currentNode['public'])})
 
         if result['result'] == 'error':
-            self.output.line(" ~~~ touch command FAILED ~~~ ")
-            self.output.line(result['error'])
+            # self.output.line(" ~~~ touch command FAILED ~~~ ")
+            # self.output.line(result['error'])
+            # raise NodeError(result['error'])
+            return False
         else:
             if self.auth.verify_two_way_result(currentNode['verify'], result):
 

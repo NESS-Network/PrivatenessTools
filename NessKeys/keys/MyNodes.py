@@ -70,10 +70,10 @@ class MyNodes(NessKey):
     def getCurrentNode(self) -> list:
         return self.__current
 
-    def getCurrentNodeUsername(self) -> list:
+    def getCurrentNodeUsername(self) -> str:
         return self.__current[0]
 
-    def getCurrentNodeUrl(self) -> list:
+    def getCurrentNodeUrl(self) -> str:
         return self.__current[1]
 
     def findNode(self, user_name: str, node_url: str):
