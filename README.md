@@ -219,6 +219,8 @@ Keys directory: /home/user/.privateness-keys
 ```
 *** User list and user selection
 ### USAGE:
+#### Show current user and current node
+ ./user
 #### Show userlist
  ./user list|ls
 #### Select user
