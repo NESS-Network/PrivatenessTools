@@ -154,23 +154,6 @@ class KeyManager:
         print(userkey.compile(), userkey.getFilename())
         self.__storage.save(userkey.compile(), userkey.getFilename())
 
-
-    def changeCurrentUser(self, username: str):
-        userskey = Users()
-        filename = self.fileName(userskey.getFilename())
-
-        keydata = self.__storage.restore(filename)
-
-        if keydata != False:
-            userskey.load(keydata)
-
-        if userskey.findUser(username) == False:
-            raise UserNotFound(username)
-
-        userskey.setCurrentUser(username)
-
-        self.__storage.save(userskey.compile(), filename)
-
     def showUsersKey(self) -> dict|bool:
         userskey = Users()
         filename = self.fileName(userskey.getFilename())
@@ -188,6 +171,34 @@ class KeyManager:
             'nvs': userskey.nvs(),
             'worm': userskey.worm()
         }
+
+
+    def changeCurrentUser(self, username: str):
+        userskey = Users()
+        filename = self.fileName(userskey.getFilename())
+
+        keydata = self.__storage.restore(filename)
+
+        userskey.load(keydata)
+
+        if userskey.findUser(username) == False:
+            raise UserNotFound(username)
+
+        userskey.setCurrentUser(username)
+
+        self.__storage.save(userskey.compile(), filename)
+
+        myNodesKey = MyNodes()
+        filename = self.fileName(myNodesKey.getFilename())
+
+        keydata = self.__storage.restore(filename)
+
+        myNodesKey.load(keydata)
+
+        node_url = myNodesKey.getCurrentNodeUrl()
+        myNodesKey.changeCurrentNode(username, node_url)
+
+        self.__storage.save(myNodesKey.compile(), filename)
 
     def getCurrentUser(self) -> str|bool:
         userkey = Users()

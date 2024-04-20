@@ -18,6 +18,8 @@ class Noder:
     def __manual(self):
         print("*** User list and user selection")
         print("### USAGE:")
+        print("#### Show current user and current node")
+        print(" ./user")
         print("#### Show userlist")
         print(" ./user list|ls")
         print("#### Select user")
@@ -30,6 +32,19 @@ class Noder:
         print(" ./user worm")
         print("#### Edit users file")
         print(" ./user edit [editor=nano]")
+
+    def __userinfo(self):
+        km = Container.KeyManager()
+        current_node = km.getCurrentNodeName()
+        current_user = km.getCurrentUser()
+
+        if current_node == False:
+            current_node = "[NOT SELECTED]"
+
+        if current_user == False:
+            current_user = "[NOT SELECTED]"
+
+        print(" *** {} at {}".format(current_user, current_node))
 
     def print_userlist(self):
         manager = Container.KeyManager()
@@ -96,7 +111,7 @@ class Noder:
             self.__manual()
 
         else:
-            self.__manual()
+            self.__userinfo()
 
 upd = Noder()
 upd.process()

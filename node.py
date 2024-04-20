@@ -124,6 +124,7 @@ class Noder:
                     print("Node {} is not responding".format(node_url))
                     exit(1)
 
+                fm = Container.FileManager()
                 fm.join("", node_url)
 
             except NodesFileDoesNotExist as e:
@@ -161,7 +162,10 @@ class Noder:
         elif len(sys.argv) == 2 and sys.argv[1].lower() == 'userinfo':
             # TODO: ENodeNotSelected
             try:
+                km = Container.KeyManager()
+                me = km.getCurrentUser()
                 info = nm.userinfo()
+                # print(info)
                 userinfo = info['userinfo']
                 nodeinfo = info['nodeinfo']
 
@@ -171,20 +175,29 @@ class Noder:
                 t.align = 'l'
                 t.add_row(["Network", nodeinfo['network']])
                 t.add_row(["Services", ','.join(nodeinfo['services'])])
-                t.add_row(["Period (minutes)", nodeinfo['period']])
+                t.add_row(["Period (HOURS)", nodeinfo['period']])
                 t.add_row(["Tariff", nodeinfo['tariff']])
 
                 print(t)
 
-                print(" * Userinfo:")
+                if userinfo['is_master']:
+                    print(" * Master User:")
 
-                t = PrettyTable(['Param', 'value'])
-                t.align = 'l'
-                t.add_row(["Payment address", userinfo['addr']])
-                t.add_row(["User counter", userinfo['counter']])
-                t.add_row(["User shadowname", userinfo['shadowname']])
-                t.add_row(["Joined to node", userinfo['joined']])
-                t.add_row(["Active on node", userinfo['is_active']])
+                    t = PrettyTable(['Param', 'value'])
+                    t.align = 'l'
+                    t.add_row(["Payment address", userinfo['addr']])
+                    t.add_row(["User shadowname", userinfo['shadowname']])
+                    t.add_row(["Joined to node", userinfo['joined']])
+                else:
+                    print(" * Userinfo:")
+
+                    t = PrettyTable(['Param', 'value'])
+                    t.align = 'l'
+                    t.add_row(["Payment address", userinfo['addr']])
+                    t.add_row(["User counter", userinfo['counter']])
+                    t.add_row(["User shadowname", userinfo['shadowname']])
+                    t.add_row(["Joined to node", userinfo['joined']])
+                    t.add_row(["Active on node", userinfo['is_active']])
 
                 print(t)
 
@@ -198,6 +211,32 @@ class Noder:
                 t.add_row(["Coin-hours (available)", userinfo['balance']['available']])
 
                 print(t)
+
+                if userinfo['is_master']:
+                    print(" * Users:")
+
+                    t = PrettyTable(['Username', 'Address', 'Random hours', 'Counter', 'Payments', 'Active'])
+                    t.align = 'l'
+
+                    for username in info['users']:
+                        user = info['users'][username]
+                        if username != me:
+                            t.add_row([username, user['addr'], user['random_hours'], user['counter'], len(user['payments']), user['active']])
+
+                    print(t)
+
+                    print(" * Payments:")
+
+                    t = PrettyTable(['Date', 'Username', 'Hours', 'NCH payed', 'txid'])
+                    t.align = 'l'
+
+                    for username in info['payments']:
+                        payments = info['payments'][username]
+                        for payment in payments:
+                            if username != me:
+                                t.add_row([payment['date'], username, payment['hours'], payment['coin_hours_payed'], payment['txid']])
+
+                    print(t)
 
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
