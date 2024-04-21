@@ -151,7 +151,7 @@ class KeyManager:
             "nonce": nonce,
             "signatures": {},
         })
-        print(userkey.compile(), userkey.getFilename())
+        # print(userkey.compile(), userkey.getFilename())
         self.__storage.save(userkey.compile(), userkey.getFilename())
 
     def showUsersKey(self) -> dict|bool:
