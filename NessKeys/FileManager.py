@@ -520,4 +520,5 @@ class FileManager:
         if not self.NodesService.joined(self.current_node_name):
             raise NodeNotSelected(self.current_node_name)
             
-        self.saveFilesAndDirectoriesFile()
+        if self.KeyManager.getBackupKey():
+            self.saveFilesAndDirectoriesFile()
