@@ -50,6 +50,7 @@ class node:
 
     def nodeInfo(self, node_url: str) -> dict:
         info = requests.get(node_url + '/node/info').text
+        print (info)
         info = json.loads(info)
         if info['result'] != 'error':
             return info['info']
