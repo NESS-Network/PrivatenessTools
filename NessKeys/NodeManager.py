@@ -50,15 +50,16 @@ class NodeManager:
 
                         node_info = self.NodesService.nodeInfo(node['url'])
 
-                        row = {'caption': node_caption, \
-                            'network': node['network'], \
-                            'services': ','.join(node['services']), \
-                            'tariff': node['tariff'], \
-                            'slots': "{} ({})".format(node_info['slots'], node_info['slots_free']), \
-                            'slots_free': node_info['slots_free'], \
-                            'quota': node_info['files']['quota'] }
+                        if node_info:
+                            row = {'caption': node_caption, \
+                                'network': node['network'], \
+                                'services': ','.join(node['services']), \
+                                'tariff': node['tariff'], \
+                                'slots': "{} ({})".format(node_info['slots'], node_info['slots_free']), \
+                                'slots_free': node_info['slots_free'], \
+                                'quota': node_info['files']['quota'] }
 
-                        Result.append(row)
+                            Result.append(row)
 
         if sort != '':
             Result.sort(key = fn_sort)

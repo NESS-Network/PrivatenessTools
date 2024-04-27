@@ -49,7 +49,18 @@ class node:
         return True
 
     def nodeInfo(self, node_url: str) -> dict:
-        return json.loads(requests.get(node_url + '/node/info').text)['info']
+        info = requests.get(node_url + '/node/info').text
+
+        try:
+            info = json.loads(info)
+        except Exception as e:
+            return False
+
+        if info['result'] != 'error':
+            return info['info']
+        else:
+            return False
+
 
     def nodesList(self, node_url: str) -> dict:
         return json.loads(requests.get(node_url + '/node/about').text)
