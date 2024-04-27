@@ -513,7 +513,8 @@ class FileManager:
         self.KeyManager.initSettings()
         self.KeyManager.initMyNodes()
 
-        self.initDirectoriesAndFilesKey()
+        if self.current_node_name:
+            self.initDirectoriesAndFilesKey()
 
     def saveKeys(self):
         if not self.NodesService.joined(self.current_node_name):
