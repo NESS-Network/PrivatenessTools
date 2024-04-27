@@ -27,7 +27,7 @@ All comunication between service node and client is encrypted and signed with ed
   * Blockchain NVS value `./user worm my_user`
   * Make blockchain NVS record in [Emercoin wallet](https://emercoin.com/en/for-coinholders#download) wallet or in NVS exchange [here](https://nvs.ness.cx)
 ### Update nodes list (nodes-update.py)
-  * Run `./nodes-update node https://node.ness.cx` [more detailed hete](#nodes-update)
+  * Run `./nodes-update node https://node.ness.cx` [more detailed here](#nodes-update)
   * Run `./node ls` to display active nodes list
   * Run `./node about https://node.ness.cx` to display node about page
   * Run `./node info https://node.ness.cx` to info about node (max users count, file storage quota, etc)
