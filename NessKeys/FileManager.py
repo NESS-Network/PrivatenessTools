@@ -263,7 +263,7 @@ class FileManager:
 
         if quota != False:
             t = PrettyTable(['Param', 'value'])
-            t.align = 'l'
+            t.align = 'r'
             t.add_row(["Total", humanize.naturalsize(quota['total'])])
             t.add_row(["Used", humanize.naturalsize(quota['used'])])
             t.add_row(["Percentage", "{} %".format( round(quota['used'] * 100 / quota['total']) )])
