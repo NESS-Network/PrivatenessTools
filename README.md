@@ -18,11 +18,23 @@ All comunication between service node and client is encrypted and signed with ed
 `pip install humanize requests pynacl pycryptodome prettytable validators lxml libxml2 libxslt random-word`
 
 ## Initialization
- * Generate user (keygen.py)
- * Register user in blockchain (`key.py nvs` and `key.py worm`)
- * Initialise local keys (key.py init)
- * Update nodes list (nodes-update.py)
- * Register in your node (python node.py set <node-name>)
+### Generate user
+  ./keygen user <username> <Entropy level>
+  Example: `$ ./keygen user my_user 50`
+### Register user in blockchain
+  * Select user `./user sel my_user`
+  * Blockchain NVS key `./user nvs my_user`
+  * Blockchain NVS value `./user worm my_user`
+  * Make blockchain NVS record in [Emercoin wallet](https://emercoin.com/en/for-coinholders#download) wallet or in NVS exchange [here](https://nvs.ness.cx)
+### Update nodes list (nodes-update.py)
+  * Run `./nodes-update node https://node.ness.cx` [more detailed hete](#nodes-update)
+  * Run `./node ls` to display active nodes list
+  * Run `./node about https://node.ness.cx` to display node about page
+  * Run `./node info https://node.ness.cx` to info about node (max users count, file storage quota, etc)
+### Register in your node
+  * `./node sel https://node.ness.cx` https://node.ness.cx can be replaced to your node from nodes list
+  * `./mkdir` to create directory, `./cd` to change current directory, `./upload` to upload file, `./download` to download file, `./quota` to show your file usage quota
+  * Genearate backup key to be able to restore all your keys from selected node through link run `./keygen backup 50` to generate backup key and `./backup backup` to do backup to node
 
 ## Running
 * Any command can be runned `python command.py` or `./command`
@@ -172,6 +184,7 @@ On client all keys are stored in `~/privateness-keys/*.json` directory, director
 
 Keys directory: /home/user/.privateness-keys
 ```
+<a id="nodes-update"></a>
 ## Node and user management
 ### ./nodes-update
 ```
