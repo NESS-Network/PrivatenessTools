@@ -266,6 +266,7 @@ class FileManager:
             t.align = 'l'
             t.add_row(["Total", humanize.naturalsize(quota['total'])])
             t.add_row(["Used", humanize.naturalsize(quota['used'])])
+            t.add_row(["Percentage", "{} %".format( round(quota['used'] * 100 / quota['total']) )])
             t.add_row(["Free", humanize.naturalsize(quota['free'])])
 
             print(t)
