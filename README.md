@@ -339,6 +339,24 @@ Keys directory: /home/user/.privateness-keys
 ### ./sync
  TODO ...
 
+### ./prng
+```
+*** Show random data
+### USAGE:
+#### Show random generated seed:
+ ./prng seed
+#### Show random generated seed (big):
+ ./prng seedb
+#### Show random generated numbers:
+ ./prng numbers
+#### Show random generated numbers (many):
+ ./prng numbersb
+#### Show random generated 256 bit number (int, ethereum):
+ ./prng i256
+#### Show random generated 256 bit number (hex, ethereum):
+ ./prng h256
+```
+
 ### ./backup
 ```
 *** PrivateNess keys BACKUP
