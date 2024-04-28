@@ -263,9 +263,10 @@ class FileManager:
 
         if quota != False:
             t = PrettyTable(['Param', 'value'])
-            t.align = 'l'
+            t.align = 'r'
             t.add_row(["Total", humanize.naturalsize(quota['total'])])
             t.add_row(["Used", humanize.naturalsize(quota['used'])])
+            t.add_row(["Percentage", "{} %".format( round(quota['used'] * 100 / quota['total']) )])
             t.add_row(["Free", humanize.naturalsize(quota['free'])])
 
             print(t)
@@ -520,4 +521,5 @@ class FileManager:
         if not self.NodesService.joined(self.current_node_name):
             raise NodeNotSelected(self.current_node_name)
             
-        self.saveFilesAndDirectoriesFile()
+        if self.KeyManager.getBackupKey():
+            self.saveFilesAndDirectoriesFile()
