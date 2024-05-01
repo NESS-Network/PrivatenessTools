@@ -63,6 +63,10 @@ class KeyManager:
         self.__storage = storage
         self.__key_maker = key_maker
         self.directory = str(Path.home()) + "/.privateness-keys"
+
+        if not os.path.exists(self.directory):
+            os.mkdir(self.directory)
+
         keys = glob.glob(self.directory + '/*.json')
 
         dkey = self.directory + '/directories.key.json'

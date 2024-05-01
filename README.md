@@ -15,7 +15,7 @@ All comunication between service node and client is encrypted and signed with ed
 * Required Python 3.10 +
 `git clone https://github.com/NESS-Network/PrivatenessTools`
 
-`pip install humanize requests pynacl pycryptodome prettytable validators lxml libxml2 libxslt random-word`
+`pip install humanize requests pynacl pycryptodome prettytable validators lxml libxslt random-word`
 
 ## Initialization
 ### Generate user
