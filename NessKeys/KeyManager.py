@@ -220,7 +220,8 @@ class KeyManager:
 
     def createNodeKey(self, url: str, tariff: int, masterUser: str, services: str, network: str, entropy: int):
         keypair = self.__keypair(entropy)
-        filename = urllib.parse.quote_plus(url) + ".key.json"
+        # filename = urllib.parse.quote_plus(url) + ".key.json"
+        filename = "node.key.json"
 
         nodekey = NodeKey()
         nodekey.setUrl(url)
