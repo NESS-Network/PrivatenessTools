@@ -143,3 +143,6 @@ _dec/*.*
 #Test suite
 /NessKeys/tests/sample.enc
 /NessKeys/tests/smpl.jpg
+
+# Other
+*.txt
