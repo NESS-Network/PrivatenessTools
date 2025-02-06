@@ -57,7 +57,7 @@ class Keygen:
         print("  Example: $ ./keygen words 32 5")     
         print("#### Generate seed (bip39)")
         print("  ./keygen bip39 <length (12 or 24)> <Entropy level>")
-        print("  Example: $ ./keygen words 12 5")    
+        print("  Example: $ ./keygen bip39 12 5")    
         print("#### Show this manual")
         print("  $ ./keygen help")
         print("  $ ./keygen -h")
