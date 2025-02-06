@@ -1015,6 +1015,23 @@ class KeyManager:
 
         return w
 
+    def generate_bip39_seed(self, entropy: int, count: int = 12):
+        filename = os.path.dirname(__file__) + "/../data/bip39"
+
+        f = open(filename, "r")
+        words = f.read()
+        f.close()
+        words = words.splitlines()
+
+        seed = self.__generate_number_seed(entropy, len(words), count)
+
+        w = []
+
+        for num in seed:
+            w.append(words[num])
+
+        return w
+
     def KeyFromSeed(self, seed: str):
         generator = prng.UhePrng()
 

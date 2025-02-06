@@ -55,6 +55,9 @@ class Keygen:
         print("#### Generate seed (words)")
         print("  ./keygen seed <length> <Entropy level>")
         print("  Example: $ ./keygen words 32 5")     
+        print("#### Generate seed (bip39)")
+        print("  ./keygen bip39 <length (12 or 24)> <Entropy level>")
+        print("  Example: $ ./keygen words 12 5")    
         print("#### Show this manual")
         print("  $ ./keygen help")
         print("  $ ./keygen -h")
@@ -139,8 +142,19 @@ class Keygen:
 
             manager = Container.KeyManager()
 
-            manager.output = False
+            # manager.output = False
             words = manager.generate_word_seed(entropy, words_count)
+            print(" ".join(words))
+            manager.output = True
+
+        elif ARGS.args(['bip39', int, int]):
+            words_count = int(sys.argv[2])
+            entropy = int(sys.argv[3])
+
+            manager = Container.KeyManager()
+
+            # manager.output = False
+            words = manager.generate_bip39_seed(entropy, words_count)
             print(" ".join(words))
             manager.output = True
 
