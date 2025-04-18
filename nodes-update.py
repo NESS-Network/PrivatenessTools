@@ -204,7 +204,7 @@ class NodesUpdater:
                 print("### Updating nodes list from blockchain")
                 self.updateNodesFromBlockchain()
             except BlockchainSettingsFileNotExist as e:
-                km.saveBlockchainSettings('127.0.0.1', 8332, 'user', 'user')
+                km.saveBlockchainSettings('127.0.0.1', 6662, 'rpcuser', 'rpcpassword')
                 self.updateNodesFromBlockchain()
             except Exception as e:
                 if str(e) == 'Expecting value: line 1 column 1 (char 0)':
