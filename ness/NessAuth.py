@@ -34,7 +34,7 @@ class NessAuth:
         auth_id = self.auth_id(user_private_key, node_url, node_nonce, username, user_nonce)
         url = node_full_url + "/" + shadowname + "/" + urllib.parse.quote_plus(auth_id)
         # print (url, auth_id)
-        return json.loads(requests.get(url).text)
+        return json.loads(requests.get(url, verify=False).text)
 
     def post_data_by_auth_id(self, data: bytes, node_full_url: str, user_private_key: str, node_url: str, node_nonce: str, username: str, shadowname: str,
                        user_nonce: str):

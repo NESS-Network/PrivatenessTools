@@ -36,7 +36,7 @@ class node:
         self.output = output
 
     def nodePing(self, node_url: str) -> dict:
-        r = requests.get(node_url + '/node/nodes')
+        r = requests.get(node_url + '/node/nodes', verify=False)
 
         if r.status_code != 200:
             return False
@@ -49,7 +49,7 @@ class node:
         return True
 
     def nodeInfo(self, node_url: str) -> dict:
-        info = requests.get(node_url + '/node/info').text
+        info = requests.get(node_url + '/node/info', verify=False).text
 
         try:
             info = json.loads(info)
@@ -63,10 +63,10 @@ class node:
 
 
     def nodesList(self, node_url: str) -> dict:
-        return json.loads(requests.get(node_url + '/node/about').text)
+        return json.loads(requests.get(node_url + '/node/about', verify=False).text)
 
     def about(self, node_url: str) -> dict:
-        return requests.get(node_url + '/node/about').text
+        return requests.get(node_url + '/node/about', verify=False).text
 
     def join(self, node_name: str):
         currentNode = self.Nodes.findNode(node_name)
@@ -161,7 +161,7 @@ class node:
             return False
 
     def exist(self, node_url: str, username: str) -> bool:
-        result = requests.get(node_url + '/node/exist/' + username).text
+        result = requests.get(node_url + '/node/exist/' + username, verify=False).text
         result = json.loads(result)
         return result['info']['exists']
 

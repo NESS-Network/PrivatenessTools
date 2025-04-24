@@ -91,7 +91,7 @@ class Backup:
 
             key = manager.KeyFromSeed(seed.strip())
 
-            encr = requests.get(address).content
+            encr = requests.get(address, verify=False).content
 
             try:
                 ekey_text = manager.unpack(encr, key)

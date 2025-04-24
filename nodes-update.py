@@ -106,7 +106,7 @@ class NodesUpdater:
         # result = ns.nodesList(node_url)
         node_url = node_url.rstrip('/') + '/node/nodes'
 
-        result = json.loads(requests.get(node_url).text)
+        result = json.loads(requests.get(node_url, verify=False).text)
         
         if result['result'] == 'data':
             return result['data']
