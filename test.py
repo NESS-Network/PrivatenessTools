@@ -3,7 +3,7 @@ from base64 import b32encode
 from base64 import b32decode
 import textwrap
 
-data = b'SHA-3 is the latest member of the Secure Hash Algorithm family of standards, released by NIST on August 5, 2015.'
+data = b'eb5606b44d2ef77af3753904a8139450-17-millions.mp4'
 
 h_obj = SHA3_256.new()
 h_obj.update(data)

@@ -9,6 +9,10 @@ from NessKeys.exceptions.NodeNotFound import NodeNotFound
 from NessKeys.exceptions.NodeError import NodeError
 from NessKeys.exceptions.AuthError import AuthError
 
+from Crypto.Hash import SHA3_256
+from base64 import b32encode
+from base64 import b32decode
+
 import json
 from ness.NessAuth import NessAuth
 import math
@@ -475,7 +479,11 @@ class files:
                     dirf = dir[shadowname]
 
                     if shadowname == file['filename']:
-                        pub = currentNode['url'] + "/files/pub/" + dirf['id'] + "-" + node_shadowname + "-" + self.auth.alternative_id(self.Users.getPrivateKey(), currentNode['url'], currentNode["nonce"], self.Users.getUsername(), self.Users.getNonce())
+                        h_obj = SHA3_256.new()
+                        h_obj.update( bytes(node_shadowname + '-' + shadowname, "utf-8"))
+                        hashstring = b32encode(h_obj.digest()).decode('utf-8')
+                        # pub = currentNode['url'] + "/files/pub/" + dirf['id'] + "-" + node_shadowname + "-" + self.auth.alternative_id(self.Users.getPrivateKey(), currentNode['url'], currentNode["nonce"], self.Users.getUsername(), self.Users.getNonce())
+                        pub = currentNode['url'] + "/files/pub/" + hashstring
                     else:
                         pub = ""
 
