@@ -49,9 +49,12 @@ class Keygen:
         print("#### Generate Backup Key")
         print("  ./keygen backup <Entropy level>")
         print("  Example: $ ./keygen backup 5")
-        print("#### Generate seed")
+        print("#### Generate seed (phrase)")
         print("  ./keygen seed <length> <Entropy level>")
-        print("  Example: $ ./keygen seed 32 5")        
+        print("  Example: $ ./keygen seed 32 5")    
+        print("#### Generate seed (words)")
+        print("  ./keygen seed <length> <Entropy level>")
+        print("  Example: $ ./keygen words 32 5")     
         print("#### Show this manual")
         print("  $ ./keygen help")
         print("  $ ./keygen -h")
@@ -129,6 +132,17 @@ class Keygen:
             manager = Container.KeyManager()
 
             return manager.createFaucetkey(url, entropy)
+
+        elif ARGS.args(['words', int, int]):
+            words_count = int(sys.argv[2])
+            entropy = int(sys.argv[3])
+
+            manager = Container.KeyManager()
+
+            manager.output = False
+            words = manager.generate_word_seed(entropy, words_count)
+            print(" ".join(words))
+            manager.output = True
 
         elif ARGS.args(['backup', str]):
             if self.__is_integer(sys.argv[2]):

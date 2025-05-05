@@ -59,10 +59,16 @@ from NessKeys.JsonChecker.exceptions.LeafBuildException import LeafBuildExceptio
 
 class KeyManager:
 
+    output = True
+
     def __init__(self, storage: Storage, key_maker: KeyMaker):
         self.__storage = storage
         self.__key_maker = key_maker
         self.directory = str(Path.home()) + "/.privateness-keys"
+
+        if not os.path.exists(self.directory):
+            os.mkdir(self.directory)
+
         keys = glob.glob(self.directory + '/*.json')
 
         dkey = self.directory + '/directories.key.json'
@@ -216,7 +222,8 @@ class KeyManager:
 
     def createNodeKey(self, url: str, tariff: int, masterUser: str, services: str, network: str, entropy: int):
         keypair = self.__keypair(entropy)
-        filename = urllib.parse.quote_plus(url) + ".key.json"
+        # filename = urllib.parse.quote_plus(url) + ".key.json"
+        filename = "node.key.json"
 
         nodekey = NodeKey()
         nodekey.setUrl(url)
@@ -242,7 +249,7 @@ class KeyManager:
         self.__storage.save(fkey.compile(), fkey.getFilename())
 
     def createBackupKey(self, backup_type: str, address: str, entropy: int) -> BackupKey:
-        w = self.__generate_word_seed(entropy)
+        w = self.generate_word_seed(entropy)
         seed = ' '.join(w)
         key = self.KeyFromSeed(seed)
 
@@ -899,7 +906,9 @@ class KeyManager:
         fk = self.getFilesKey()
         fk.setProgress(self.getCurrentUser(), self.getCurrentNodeName(), shadowname, progress)
         self.saveKey(fk)
-        print('+', end = " ", flush = True)
+
+        if self.output:
+            print('+', end = " ", flush = True)
     
     def hasFiles(self) -> bool:
         key = FilesKey()
@@ -961,9 +970,12 @@ class KeyManager:
 
             generator.add_entropy(rand, str(uuid.getnode()))
 
-            print('+', end = " ", flush = True)
+            if self.output:
+                print('+', end = " ", flush = True)
 
-        print("")
+
+        if self.output:
+            print("")
         
         return generator.string(len).encode(encoding = 'utf-8')
 
@@ -978,13 +990,15 @@ class KeyManager:
 
             generator.add_entropy(rand, str(uuid.getnode()))
 
-            print('+', end = " ", flush = True)
+            if self.output:
+                print('+', end = " ", flush = True)
 
-        print("")
+        if self.output:
+            print("")
         
         return generator.numbers(len, count)
 
-    def __generate_word_seed(self, entropy: int, count: int = 25):
+    def generate_word_seed(self, entropy: int, count: int = 25):
         filename = os.path.dirname(__file__) + "/../data/words"
 
         f = open(filename, "r")
