@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Encryption-Decryption</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Encryption-Decryption</h1>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <label for="algorithm">Encryption Algorithm:</label>
+            <select id="algorithm" name="algorithm">
+                <option value="Salsa20">Salsa20</option>
+                <option value="AES">AES</option>
+            </select>
+            <input type="file" id="fileInput" name="file" required>
+            <button type="submit" id="uploadBtn">Upload</button>
+        </form>
+
+        <div class="controls">
+            <button id="startBtn">Start</button>
+            <button id="pauseBtn" disabled>Pause</button>
+            <button id="resumeBtn" disabled>Resume</button>
+            <button id="decryptBtn" disabled>Decrypt</button>
+        </div>
+
+        <div id="progressContainer" style="display:none;">
+            <label for="progressBar">Progress:</label>
+            <progress id="progressBar" value="0" max="100"></progress>
+            <span id="progressText">0%</span>
+        </div>
+
+        <h2>Available Files</h2>
+        <ul id="fileList"></ul>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
