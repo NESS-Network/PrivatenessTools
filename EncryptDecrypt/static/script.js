@@ -1,164 +1,157 @@
-let currentOperationId = null;
-let currentFile = null;
-let currentAlgorithm = null;
+$(document).ready(function() {
+    let currentOperationId = null;
+    let selectedFile = null;
 
-// Utility to generate a unique operation ID
-function generateOpId() {
-    return 'op_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
-}
+    // Initialize file list
+    refreshFileList();
 
-// Load file list from server
-function refreshFileList() {
-    $.ajax({
-        url: '/files/list',
-        method: 'GET',
-        success: function(response) {
+    // File Upload Handler
+    $('#uploadForm').on('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('file', $('#fileInput')[0].files[0]);
+        formData.append('algorithm', $('#algorithm').val());
+        formData.append('key', $('#encryptionKey').val());
+
+        $('#uploadBtn').prop('disabled', true).text('Encrypting...');
+        
+        $.ajax({
+            url: '/upload',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    alert('File encrypted successfully!');
+                    refreshFileList();
+                    $('#uploadForm')[0].reset();
+                } else {
+                    alert('Error: ' + response.error);
+                }
+            },
+            error: function(xhr) {
+                alert('Upload failed: ' + xhr.responseJSON.error);
+            },
+            complete: function() {
+                $('#uploadBtn').prop('disabled', false).text('Upload & Encrypt');
+            }
+        });
+    });
+
+    // File List Click Handler
+    $(document).on('click', '.file-item', function() {
+        $('.file-item').removeClass('selected');
+        $(this).addClass('selected');
+        selectedFile = $(this).data('shadowname');
+        $('#decryptSection').show();
+    });
+
+    // Download Handler
+    $(document).on('click', '.download-btn', function() {
+        const shadowname = $(this).closest('.file-item').data('shadowname');
+        window.location = `/download/${encodeURIComponent(shadowname)}`;
+    });
+
+    // Decrypt Handler
+    $('#decryptBtn').click(function() {
+        const key = $('#decryptionKey').val();
+        if (!key) {
+            alert('Please enter decryption key');
+            return;
+        }
+
+        $.ajax({
+            url: `/decrypt/${selectedFile}`,
+            method: 'POST',
+            data: { key: key },
+            success: function(response) {
+                if (response.success) {
+                    alert('Decryption successful!');
+                    refreshFileList();
+                } else {
+                    alert('Decryption failed: ' + response.error);
+                }
+            },
+            error: function(xhr) {
+                alert('Decryption error: ' + xhr.responseJSON.error);
+            }
+        });
+    });
+
+    // Operation Controls
+    $('#startBtn').click(startOperation);
+    $('#pauseBtn').click(pauseOperation);
+    $('#resumeBtn').click(resumeOperation);
+
+    // Refresh file list every 30 seconds
+    setInterval(refreshFileList, 30000);
+
+    // Utility Functions
+    function refreshFileList() {
+        $.get('/files/list', function(response) {
             if (response.success) {
-                let list = $('#fileList');
-                list.empty();
+                const fileList = $('#fileList');
+                fileList.empty();
+                
                 response.files.forEach(file => {
-                    let li = $('<li>');
-                    li.text(file.filename + ' (' + file.algorithm + ')');
-                    let downloadBtn = $('<button>Download</button>').click(() => downloadFile(file.shadowname));
-                    let decryptBtn = $('<button>Decrypt</button>').click(() => decryptFile(file.shadowname));
-                    li.append(' ', downloadBtn, ' ', decryptBtn);
-                    list.append(li);
+                    fileList.append(`
+                        <div class="file-item" data-shadowname="${file.shadowname}">
+                            <div class="file-info">
+                                <span class="filename">${file.filename}</span>
+                                <span class="algorithm">${file.algorithm}</span>
+                            </div>
+                            <button class="download-btn action-btn">Download</button>
+                        </div>
+                    `);
                 });
             }
-        }
-    });
-}
-
-// Upload file handler
-$('#uploadForm').on('submit', function(e) {
-    e.preventDefault();
-    let fileInput = $('#fileInput')[0];
-    if (!fileInput.files.length) return alert('Please select a file.');
-    let file = fileInput.files[0];
-    let algorithm = $('#algorithm').val();
-
-    let formData = new FormData();
-    formData.append('file', file);
-    formData.append('algorithm', algorithm);
-
-    $('#uploadBtn').prop('disabled', true).text('Uploading...');
-    $.ajax({
-        url: '/upload',
-        method: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function(response) {
-            $('#uploadBtn').prop('disabled', false).text('Upload');
-            if (response.success) {
-                alert('Upload successful!');
-                refreshFileList();
-                $('#decryptBtn').prop('disabled', false);
-            } else {
-                alert('Upload failed: ' + response.error);
-            }
-        },
-        error: function() {
-            $('#uploadBtn').prop('disabled', false).text('Upload');
-            alert('Upload failed due to network/server error.');
-        }
-    });
-});
-
-// Download handler
-function downloadFile(shadowname) {
-    window.location = '/download/' + encodeURIComponent(shadowname);
-}
-
-// Decrypt handler (dummy, as actual decryption logic depends on backend/client-side crypto)
-function decryptFile(shadowname) {
-    alert('Decryption feature to be implemented as per your security model.');
-}
-
-// Start operation
-$('#startBtn').on('click', function() {
-    if (!currentOperationId) {
-        currentOperationId = generateOpId();
+        });
     }
-    $.ajax({
-        url: '/operation/start',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ op_id: currentOperationId }),
-        success: function(response) {
+
+    function startOperation() {
+        currentOperationId = `op_${Date.now()}`;
+        $.post('/operation/start', { op_id: currentOperationId }, function(response) {
             if (response.success) {
                 $('#pauseBtn').prop('disabled', false);
                 $('#resumeBtn').prop('disabled', true);
-                $('#progressContainer').show();
                 pollProgress();
             }
-        }
-    });
-});
+        });
+    }
 
-// Pause operation
-$('#pauseBtn').on('click', function() {
-    if (!currentOperationId) return;
-    $.ajax({
-        url: '/operation/pause',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ op_id: currentOperationId }),
-        success: function(response) {
+    function pauseOperation() {
+        $.post('/operation/pause', { op_id: currentOperationId }, function(response) {
             if (response.success) {
                 $('#pauseBtn').prop('disabled', true);
                 $('#resumeBtn').prop('disabled', false);
             }
-        }
-    });
-});
+        });
+    }
 
-// Resume operation
-$('#resumeBtn').on('click', function() {
-    if (!currentOperationId) return;
-    $.ajax({
-        url: '/operation/resume',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ op_id: currentOperationId }),
-        success: function(response) {
+    function resumeOperation() {
+        $.post('/operation/resume', { op_id: currentOperationId }, function(response) {
             if (response.success) {
                 $('#pauseBtn').prop('disabled', false);
                 $('#resumeBtn').prop('disabled', true);
                 pollProgress();
             }
-        }
-    });
-});
+        });
+    }
 
-// Poll operation progress
-function pollProgress() {
-    if (!currentOperationId) return;
-    $.ajax({
-        url: '/operation/progress',
-        method: 'GET',
-        data: { op_id: currentOperationId },
-        success: function(response) {
+    function pollProgress() {
+        $.get('/operation/progress', { op_id: currentOperationId }, function(response) {
             if (response.success) {
-                let progress = response.progress || 0;
-                $('#progressBar').val(progress);
-                $('#progressText').text(progress + '%');
-                if (!response.paused && progress < 100) {
+                $('#progressBar').val(response.progress);
+                $('#progressText').text(response.progress + '%');
+                
+                if (!response.paused && response.progress < 100) {
                     setTimeout(pollProgress, 1000);
-                } else if (progress >= 100) {
+                } else if (response.progress >= 100) {
                     $('#pauseBtn').prop('disabled', true);
                     $('#resumeBtn').prop('disabled', true);
-                    $('#progressContainer').hide();
-                    alert('Operation completed!');
                 }
             }
-        }
-    });
-}
-
-// Initial load
-$(document).ready(function() {
-    refreshFileList();
-    $('#progressContainer').hide();
-    $('#pauseBtn, #resumeBtn, #decryptBtn').prop('disabled', true);
+        });
+    }
 });

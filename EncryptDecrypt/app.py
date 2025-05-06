@@ -1,26 +1,33 @@
 import sys
 import os
-PROJECT_ROOT = os.path.dirname (os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(PROJECT_ROOT)
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
+if PARENT_DIR not in sys.path:
+    sys.path.insert(0, PARENT_DIR)
+PARENT_DIR = os.path.dirname(os.path.abspath(__file__))  # D:\PrivateNessTools
+if PARENT_DIR not in sys.path:
+    sys.path.insert(0, PARENT_DIR)
+print("sys.path:", sys.path)
 import logging
-from flask import (
-    Flask, request, jsonify, send_file, render_template, g
-)
+from flask import Flask, request, jsonify, send_file, render_template, g, abort
 from werkzeug.utils import secure_filename
 from framework.Container import Container
 from utils.db import get_db, init_db
-from typing import List, Dict
+from NessKeys.Cryptors.Aes import Aes
+from NessKeys.Cryptors.Salsa20 import Salsa20
+from NessKeys.Cryptors.BlockCryptor import BlockCryptor
+from NessKeys.Cryptors.PasswordCryptor import PasswordCryptor
+from NessKeys.Cryptors.TextCryptor import TextCryptor
 
 # --- Logging Configuration ---
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploaded_files'
+app.config['UPLOAD_FOLDER'] = os.path.join(PROJECT_ROOT, 'uploaded_files')
 app.secret_key = os.environ.get('SECRET_KEY', 'a-very-secret-key')
-
-# --- Ensure upload folder exists ---
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # --- Custom Exceptions ---
@@ -32,21 +39,43 @@ class FileManager:
     def __init__(self):
         self.fm = Container.FileManager()
 
-    def upload_file(self, file, encrypt: bool = False) -> Dict:
+    def upload_file(self, file, algorithm, key) -> dict:
         try:
             filename = secure_filename(file.filename)
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(file_path)
+            enc_filename = filename + '.enc'
+            enc_file_path = os.path.join(app.config['UPLOAD_FOLDER'], enc_filename)
+
+            # Read file data
+            with open(file_path, 'rb') as f:
+                data = f.read()
+
+            # Encrypt data
+            if algorithm == 'AES':
+                cryptor = Aes()
+            elif algorithm == 'Salsa20':
+                cryptor = Salsa20()
+            else:
+                raise EncryptionError(f"Unsupported algorithm: {algorithm}")
+
+            encrypted_data = cryptor.encrypt(data, key)
+            with open(enc_file_path, 'wb') as f:
+                f.write(encrypted_data)
+
             # Register in DB
             db = get_db()
             db.execute(
-                'INSERT INTO files (shadowname, filename, algorithm) VALUES (?, ?, ?)',
-                (filename, filename, request.form.get('algorithm', 'none'))
+                'INSERT INTO files (shadowname, filename, algorithm, key) VALUES (?, ?, ?, ?)',
+                (enc_filename, filename, algorithm, key)
             )
             db.commit()
-            return {"shadowname": filename, "filename": filename}
+            # Remove original file for security
+            os.remove(file_path)
+
+            return {"shadowname": enc_filename, "filename": filename, "algorithm": algorithm}
         except Exception as e:
-            logger.error(f"Error uploading file: {str(e)}")
+            logger.error(f"Error uploading/encrypting file: {str(e)}")
             raise
 
     def download_file(self, shadowname: str) -> str:
@@ -55,12 +84,45 @@ class FileManager:
             raise FileNotFoundError(f"File {shadowname} not found.")
         return file_path
 
-    def list_files(self) -> List[Dict]:
+    def decrypt_file(self, shadowname: str, key: str) -> str:
+        # Get file and algorithm from DB
+        db = get_db()
+        file_row = db.execute('SELECT * FROM files WHERE shadowname=?', (shadowname,)).fetchone()
+        if not file_row:
+            raise FileNotFoundError(f"File {shadowname} not found in DB.")
+        algorithm = file_row['algorithm']
+        orig_filename = file_row['filename']
+
+        enc_file_path = os.path.join(app.config['UPLOAD_FOLDER'], shadowname)
+        dec_filename = orig_filename + '.dec'
+        dec_file_path = os.path.join(app.config['UPLOAD_FOLDER'], dec_filename)
+
+        with open(enc_file_path, 'rb') as f:
+            enc_data = f.read()
+
+        if algorithm == 'AES':
+            cryptor = Aes()
+        elif algorithm == 'Salsa20':
+            cryptor = Salsa20()
+        else:
+            raise EncryptionError(f"Unsupported algorithm: {algorithm}")
+
+        try:
+            dec_data = cryptor.decrypt(enc_data, key)
+        except Exception as e:
+            raise EncryptionError("Decryption failed. Wrong key or corrupted file.")
+
+        with open(dec_file_path, 'wb') as f:
+            f.write(dec_data)
+
+        return dec_file_path
+
+    def list_files(self) -> list:
         db = get_db()
         files = db.execute('SELECT * FROM files').fetchall()
         return [dict(f) for f in files]
 
-    def file_info(self, shadowname: str) -> Dict:
+    def file_info(self, shadowname: str) -> dict:
         db = get_db()
         file = db.execute('SELECT * FROM files WHERE shadowname=?', (shadowname,)).fetchone()
         if not file:
@@ -68,8 +130,6 @@ class FileManager:
         return dict(file)
 
 file_manager = FileManager()
-
-# --- Operation State (for Pause/Resume/Progress) ---
 operation_states = {}
 
 @app.before_first_request
@@ -91,8 +151,12 @@ def upload_file():
     if "file" not in request.files:
         return jsonify({"success": False, "error": "No file part in the request"}), 400
     file = request.files["file"]
+    algorithm = request.form.get("algorithm")
+    key = request.form.get("key")
+    if not algorithm or not key:
+        return jsonify({"success": False, "error": "Algorithm and key are required"}), 400
     try:
-        result = file_manager.upload_file(file)
+        result = file_manager.upload_file(file, algorithm, key)
         return jsonify({"success": True, "file": result})
     except Exception as e:
         logger.exception("Upload failed")
@@ -107,6 +171,23 @@ def download_file(shadowname):
         return jsonify({"success": False, "error": str(e)}), 404
     except Exception as e:
         logger.exception("Download failed")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/decrypt/<shadowname>", methods=["POST"])
+def decrypt_file(shadowname):
+    key = request.form.get("key")
+    if not key:
+        return jsonify({"success": False, "error": "Key is required"}), 400
+    try:
+        dec_file_path = file_manager.decrypt_file(shadowname, key)
+        return send_file(dec_file_path, as_attachment=True)
+    except EncryptionError as e:
+        logger.exception("Decryption failed")
+        return jsonify({"success": False, "error": str(e)}), 400
+    except FileNotFoundError as e:
+        return jsonify({"success": False, "error": str(e)}), 404
+    except Exception as e:
+        logger.exception("Decryption failed")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/files/list", methods=["GET"])
