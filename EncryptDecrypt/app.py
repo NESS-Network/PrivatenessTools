@@ -1,20 +1,12 @@
-import sys
 import os
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-PARENT_DIR = os.path.dirname(PROJECT_ROOT)
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
-if PARENT_DIR not in sys.path:
-    sys.path.insert(0, PARENT_DIR)
-PARENT_DIR = os.path.dirname(os.path.abspath(__file__))  # D:\PrivateNessTools
-if PARENT_DIR not in sys.path:
-    sys.path.insert(0, PARENT_DIR)
-print("sys.path:", sys.path)
 import logging
-from flask import Flask, request, jsonify, send_file, render_template, g, abort
+
+from flask import Flask, request, jsonify, send_file, render_template, g
 from werkzeug.utils import secure_filename
+
 from framework.Container import Container
-from utils.db import get_db, init_db
+from EncryptDecrypt.utils.db import get_db, init_db
+
 from NessKeys.Cryptors.Aes import Aes
 from NessKeys.Cryptors.Salsa20 import Salsa20
 from NessKeys.Cryptors.BlockCryptor import BlockCryptor
@@ -26,6 +18,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 app.config['UPLOAD_FOLDER'] = os.path.join(PROJECT_ROOT, 'uploaded_files')
 app.secret_key = os.environ.get('SECRET_KEY', 'a-very-secret-key')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -85,7 +78,6 @@ class FileManager:
         return file_path
 
     def decrypt_file(self, shadowname: str, key: str) -> str:
-        # Get file and algorithm from DB
         db = get_db()
         file_row = db.execute('SELECT * FROM files WHERE shadowname=?', (shadowname,)).fetchone()
         if not file_row:
