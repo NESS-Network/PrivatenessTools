@@ -1,17 +1,15 @@
+import sys
 import os
-import logging
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import logging
 from flask import Flask, request, jsonify, send_file, render_template, g
 from werkzeug.utils import secure_filename
 
 from framework.Container import Container
 from EncryptDecrypt.utils.db import get_db, init_db
-
-from NessKeys.Cryptors.Aes import Aes
-from NessKeys.Cryptors.Salsa20 import Salsa20
-from NessKeys.Cryptors.BlockCryptor import BlockCryptor
-from NessKeys.Cryptors.PasswordCryptor import PasswordCryptor
-from NessKeys.Cryptors.TextCryptor import TextCryptor
+from NessKeys.cryptors.Aes import Aes
+from NessKeys.cryptors.Salsa20 import Salsa20
 
 # --- Logging Configuration ---
 logging.basicConfig(level=logging.INFO)
@@ -40,11 +38,9 @@ class FileManager:
             enc_filename = filename + '.enc'
             enc_file_path = os.path.join(app.config['UPLOAD_FOLDER'], enc_filename)
 
-            # Read file data
             with open(file_path, 'rb') as f:
                 data = f.read()
 
-            # Encrypt data
             if algorithm == 'AES':
                 cryptor = Aes()
             elif algorithm == 'Salsa20':
@@ -53,19 +49,17 @@ class FileManager:
                 raise EncryptionError(f"Unsupported algorithm: {algorithm}")
 
             encrypted_data = cryptor.encrypt(data, key)
+
             with open(enc_file_path, 'wb') as f:
                 f.write(encrypted_data)
 
-            # Register in DB
             db = get_db()
             db.execute(
                 'INSERT INTO files (shadowname, filename, algorithm, key) VALUES (?, ?, ?, ?)',
                 (enc_filename, filename, algorithm, key)
             )
             db.commit()
-            # Remove original file for security
             os.remove(file_path)
-
             return {"shadowname": enc_filename, "filename": filename, "algorithm": algorithm}
         except Exception as e:
             logger.error(f"Error uploading/encrypting file: {str(e)}")
@@ -82,9 +76,9 @@ class FileManager:
         file_row = db.execute('SELECT * FROM files WHERE shadowname=?', (shadowname,)).fetchone()
         if not file_row:
             raise FileNotFoundError(f"File {shadowname} not found in DB.")
+
         algorithm = file_row['algorithm']
         orig_filename = file_row['filename']
-
         enc_file_path = os.path.join(app.config['UPLOAD_FOLDER'], shadowname)
         dec_filename = orig_filename + '.dec'
         dec_file_path = os.path.join(app.config['UPLOAD_FOLDER'], dec_filename)
@@ -101,7 +95,7 @@ class FileManager:
 
         try:
             dec_data = cryptor.decrypt(enc_data, key)
-        except Exception as e:
+        except Exception:
             raise EncryptionError("Decryption failed. Wrong key or corrupted file.")
 
         with open(dec_file_path, 'wb') as f:
@@ -124,6 +118,7 @@ class FileManager:
 file_manager = FileManager()
 operation_states = {}
 
+# --- Flask Lifecycle Hooks ---
 @app.before_first_request
 def setup():
     init_db()
@@ -134,6 +129,7 @@ def close_connection(exception):
     if db is not None:
         db.close()
 
+# --- Routes ---
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -155,7 +151,7 @@ def upload_file():
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/download/<shadowname>", methods=["GET"])
-def download_file(shadowname):
+def download_file_route(shadowname):
     try:
         file_path = file_manager.download_file(shadowname)
         return send_file(file_path, as_attachment=True)
@@ -166,7 +162,7 @@ def download_file(shadowname):
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/decrypt/<shadowname>", methods=["POST"])
-def decrypt_file(shadowname):
+def decrypt_file_route(shadowname):
     key = request.form.get("key")
     if not key:
         return jsonify({"success": False, "error": "Key is required"}), 400
