@@ -963,10 +963,10 @@ class KeyManager:
         generator = prng.UhePrng()
 
         for i in range (0, entropy):
-            rand = ''
-            with open('/dev/random', 'rb') as file:
-                rand = b64encode(file.read(1024)).decode('utf-8')
-                file.close()
+            rand = os.urandom(1024)
+            # with open('/dev/random', 'rb') as file:
+            #     rand = b64encode(file.read(1024)).decode('utf-8')
+            #     file.close()
 
             generator.add_entropy(rand, str(uuid.getnode()))
 
@@ -983,10 +983,10 @@ class KeyManager:
         generator = prng.UhePrng()
 
         for i in range (0, entropy):
-            rand = ''
-            with open('/dev/random', 'rb') as file:
-                rand = b64encode(file.read(1024)).decode('utf-8')
-                file.close()
+            rand = os.urandom(1024)
+            # with open('/dev/random', 'rb') as file:
+            #     rand = b64encode(file.read(1024)).decode('utf-8')
+            #     file.close()
 
             generator.add_entropy(rand, str(uuid.getnode()))
 
