@@ -15,7 +15,9 @@ All comunication between service node and client is encrypted and signed with ed
 * Required Python 3.10 +
 `git clone https://github.com/NESS-Network/PrivatenessTools`
 
-`pip install humanize requests pynacl pycryptodome prettytable validators lxml libxslt random-word`
+`pip install humanize requests pynacl pycryptodome prettytable validators lxml random-word`
+or
+`pip install -r requirements.txt`
 
 ## Initialization
 ### Generate user
@@ -145,12 +147,18 @@ On client all keys are stored in `~/privateness-keys/*.json` directory, director
 #### Generate Backup Key
   ./keygen backup <Entropy level>
   Example: $ ./keygen backup 5
-#### Generate seed
+#### Generate seed (phrase)
   ./keygen seed <length> <Entropy level>
   Example: $ ./keygen seed 32 5
+#### Generate seed (words)
+  ./keygen seed <length> <Entropy level>
+  Example: $ ./keygen words 32 5
+#### Generate seed (bip39)
+  ./keygen bip39 <length (12 or 24)> <Entropy level>
+  Example: $ ./keygen bip39 12 5
 #### Show this manual
-  ./keygen help
-  ./keygen -h
+  $ ./keygen help
+  $ ./keygen -h
 ```
 ## Key management
 ### ./key
