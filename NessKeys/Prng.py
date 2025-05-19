@@ -42,6 +42,7 @@ import math
 import random
 import time
 import re
+import os
 
 class UhePrng:
 
@@ -170,16 +171,17 @@ class UhePrng:
 
 		# with the PRNG initialized into a known starting state by the provided SeedKey
 		# we now pull the requested number of pseudo-random numbers from our the generator
-		file = open('/dev/random', 'rb')
+		# file = open('/dev/random', 'rb')
 
 		for i in range(0, count - 1):
-			rand = file.read(1024)
+			# rand = file.read(1024)
+			rand = os.urandom(1024)
 
 			self.add_entropy(rand)
 
 			result.append(self.random(rng))
 
-		file.close()
+		# file.close()
 
 		return result
 
