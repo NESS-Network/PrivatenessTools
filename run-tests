@@ -1,2 +1,2 @@
 #!/usr/bin/bash
-python3 run-tests.py "$@"
+python3 -W ignore run-tests.py "$@"

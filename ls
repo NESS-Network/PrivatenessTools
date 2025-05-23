@@ -1,2 +1,2 @@
 #!/usr/bin/bash
-python3 ls.py "$@"
+python3 -W ignore ls.py "$@"

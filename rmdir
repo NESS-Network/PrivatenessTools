@@ -1,2 +1,2 @@
 #!/usr/bin/bash
-python3 rmdir.py "$@"
+python3 -W ignore rmdir.py "$@"

@@ -1,2 +1,2 @@
 #!/usr/bin/bash
-python3 nodes-update.py "$@"
+python3 -W ignore nodes-update.py "$@"

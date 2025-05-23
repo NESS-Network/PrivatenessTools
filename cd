@@ -1,2 +1,2 @@
 #!/usr/bin/bash
-python3 cd.py "$@"
+python3 -W ignore cd.py "$@"
