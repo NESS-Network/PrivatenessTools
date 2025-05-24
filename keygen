@@ -1,3 +1,2 @@
 #!/usr/bin/bash
-
-python3 keygen.py "$@"
+python3 -W ignore keygen.py "$@"

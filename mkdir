@@ -1,2 +1,2 @@
 #!/usr/bin/bash
-python3 mkdir.py "$@"
+python3 -W ignore mkdir.py "$@"

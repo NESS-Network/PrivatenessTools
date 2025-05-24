@@ -1,2 +1,2 @@
 #!/usr/bin/bash
-python3 quota.py "$@"
+python3 -W ignore quota.py "$@"

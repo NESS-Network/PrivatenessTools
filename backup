@@ -1,3 +1,2 @@
 #!/usr/bin/bash
-
-python3 backup.py "$@"
+python3 -W ignore backup.py "$@"

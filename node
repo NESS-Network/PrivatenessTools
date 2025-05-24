@@ -1,2 +1,2 @@
 #!/usr/bin/bash
-python3 node.py "$@"
+python3 -W ignore node.py "$@"

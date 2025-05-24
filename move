@@ -1,2 +1,2 @@
 #!/usr/bin/bash
-python3 move.py "$@"
+python3 -W ignore move.py "$@"
