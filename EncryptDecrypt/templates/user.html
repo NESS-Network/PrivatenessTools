@@ -1,0 +1,12 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2>Select User</h2>
+  <form method="post">
+    <select name="username">
+      {% for u in users %}
+        <option value="{{ u }}">{{ u }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Set Current User</button>
+  </form>
+{% endblock %}

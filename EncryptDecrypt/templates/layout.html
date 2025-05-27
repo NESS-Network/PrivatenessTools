@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>EncryptDecrypt</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <header><h1>PrivateNess Data Security</h1></header>
+  <nav>
+    <a href="{{ url_for('index') }}">Home</a> |
+    <a href="{{ url_for('keygen') }}">Keygen</a> |
+    <a href="{{ url_for('nodes') }}">Nodes</a> |
+    <a href="{{ url_for('user') }}">User</a> |
+    <a href="{{ url_for('encrypt_route') }}">Encrypt</a> |
+    <a href="{{ url_for('decrypt_route') }}">Decrypt</a> 
+  </nav>
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flashes">
+        {% for category, msg in messages %}
+          <li class="{{ category }}">{{ msg }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

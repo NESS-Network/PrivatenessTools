@@ -1,0 +1,9 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2>Prepare NVS Records</h2>
+  <form method="post" action="{{ url_for('publish') }}">
+    <button name="action" value="user">Prepare User NVS</button>
+    <button name="action" value="worm">Prepare Worm NVS</button>
+    <button name="action" value="nodes">Prepare Nodes NVS</button>
+  </form>
+{% endblock %}

@@ -1,233 +1,225 @@
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-import logging
-from flask import Flask, request, jsonify, send_file, render_template, g
-from werkzeug.utils import secure_filename
-
+import json
+import threading
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
+from NessKeys.KeyManager import KeyManager
 from framework.Container import Container
-from EncryptDecrypt.utils.db import get_db, init_db
-from NessKeys.cryptors.Aes import Aes
-from NessKeys.cryptors.Salsa20 import Salsa20
+from services.node import node as NodesUpdater
+from NessKeys.JsonChecker.Checker import JsonChecker
+from Crypto.Cipher import AES, Salsa20
+from Crypto.Random import get_random_bytes
 
-# --- Logging Configuration ---
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
+# Initialize Flask app
 app = Flask(__name__)
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-app.config['UPLOAD_FOLDER'] = os.path.join(PROJECT_ROOT, 'uploaded_files')
-app.secret_key = os.environ.get('SECRET_KEY', 'a-very-secret-key')
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+app.config.from_mapping(
+    SECRET_KEY=os.environ.get('FLASK_SECRET', 'replace-with-secure-key'),
+    DATA_DIR=os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data'),
+    UPLOAD_DIR=os.path.join(os.path.abspath(os.path.dirname(__file__)), 'uploads')
+)
 
-# --- Custom Exceptions ---
-class EncryptionError(Exception): pass
-class DirectoryError(Exception): pass
+# Ensure necessary directories exist
+os.makedirs(app.config['DATA_DIR'], exist_ok=True)
+os.makedirs(app.config['UPLOAD_DIR'], exist_ok=True)
 
-# --- FileManager Wrapper ---
-class FileManager:
-    def __init__(self):
-        self.fm = Container.FileManager()
+# Globals for background tasks
+running_tasks = {}
+tasks_lock = threading.Lock()
 
-    def upload_file(self, file, algorithm, key) -> dict:
-        try:
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            enc_filename = filename + '.enc'
-            enc_file_path = os.path.join(app.config['UPLOAD_FOLDER'], enc_filename)
+# Encryption utilities
+def encrypt_data(data: bytes, algo: str, key: bytes) -> dict:
+    if algo == 'salsa20':
+        cipher = Salsa20.new(key=key)
+        return {'nonce': cipher.nonce, 'ciphertext': cipher.encrypt(data)}
+    elif algo == 'aes':
+        iv = get_random_bytes(16)
+        cipher = AES.new(key, AES.MODE_CFB, iv=iv)
+        return {'iv': iv, 'ciphertext': cipher.encrypt(data)}
+    else:
+        raise ValueError('Unsupported algorithm')
 
-            with open(file_path, 'rb') as f:
-                data = f.read()
+def decrypt_data(enc: dict, algo: str, key: bytes) -> bytes:
+    if algo == 'salsa20':
+        cipher = Salsa20.new(key=key, nonce=enc['nonce'])
+        return cipher.decrypt(enc['ciphertext'])
+    elif algo == 'aes':
+        cipher = AES.new(key, AES.MODE_CFB, iv=enc['iv'])
+        return cipher.decrypt(enc['ciphertext'])
+    else:
+        raise ValueError('Unsupported algorithm')
 
-            if algorithm == 'AES':
-                cryptor = Aes()
-            elif algorithm == 'Salsa20':
-                cryptor = Salsa20()
-            else:
-                raise EncryptionError(f"Unsupported algorithm: {algorithm}")
+# Home route
+def get_data(filename):
+    path = os.path.join(app.config['DATA_DIR'], filename)
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return None
 
-            encrypted_data = cryptor.encrypt(data, key)
-
-            with open(enc_file_path, 'wb') as f:
-                f.write(encrypted_data)
-
-            db = get_db()
-            db.execute(
-                'INSERT INTO files (shadowname, filename, algorithm, key) VALUES (?, ?, ?, ?)',
-                (enc_filename, filename, algorithm, key)
-            )
-            db.commit()
-            os.remove(file_path)
-            return {"shadowname": enc_filename, "filename": filename, "algorithm": algorithm}
-        except Exception as e:
-            logger.error(f"Error uploading/encrypting file: {str(e)}")
-            raise
-
-    def download_file(self, shadowname: str) -> str:
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], shadowname)
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"File {shadowname} not found.")
-        return file_path
-
-    def decrypt_file(self, shadowname: str, key: str) -> str:
-        db = get_db()
-        file_row = db.execute('SELECT * FROM files WHERE shadowname=?', (shadowname,)).fetchone()
-        if not file_row:
-            raise FileNotFoundError(f"File {shadowname} not found in DB.")
-
-        algorithm = file_row['algorithm']
-        orig_filename = file_row['filename']
-        enc_file_path = os.path.join(app.config['UPLOAD_FOLDER'], shadowname)
-        dec_filename = orig_filename + '.dec'
-        dec_file_path = os.path.join(app.config['UPLOAD_FOLDER'], dec_filename)
-
-        with open(enc_file_path, 'rb') as f:
-            enc_data = f.read()
-
-        if algorithm == 'AES':
-            cryptor = Aes()
-        elif algorithm == 'Salsa20':
-            cryptor = Salsa20()
-        else:
-            raise EncryptionError(f"Unsupported algorithm: {algorithm}")
-
-        try:
-            dec_data = cryptor.decrypt(enc_data, key)
-        except Exception:
-            raise EncryptionError("Decryption failed. Wrong key or corrupted file.")
-
-        with open(dec_file_path, 'wb') as f:
-            f.write(dec_data)
-
-        return dec_file_path
-
-    def list_files(self) -> list:
-        db = get_db()
-        files = db.execute('SELECT * FROM files').fetchall()
-        return [dict(f) for f in files]
-
-    def file_info(self, shadowname: str) -> dict:
-        db = get_db()
-        file = db.execute('SELECT * FROM files WHERE shadowname=?', (shadowname,)).fetchone()
-        if not file:
-            raise FileNotFoundError(f"File {shadowname} not found.")
-        return dict(file)
-
-file_manager = FileManager()
-operation_states = {}
-
-# --- Flask Lifecycle Hooks ---
-@app.before_first_request
-def setup():
-    init_db()
-
-@app.teardown_appcontext
-def close_connection(exception):
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
-
-# --- Routes ---
-@app.route("/")
+@app.route('/')
 def index():
-    return render_template("index.html")
+    return render_template('index.html')
 
-@app.route("/upload", methods=["POST"])
-def upload_file():
-    if "file" not in request.files:
-        return jsonify({"success": False, "error": "No file part in the request"}), 400
-    file = request.files["file"]
-    algorithm = request.form.get("algorithm")
-    key = request.form.get("key")
-    if not algorithm or not key:
-        return jsonify({"success": False, "error": "Algorithm and key are required"}), 400
+# Encryption endpoint
+@app.route('/encrypt', methods=['GET', 'POST'])
+def encrypt_route():
+    if request.method == 'POST':
+        algo = request.form['algorithm']
+        file = request.files['file']
+        key = get_random_bytes(32)
+        in_path = os.path.join(app.config['UPLOAD_DIR'], file.filename)
+        file.save(in_path)
+        data = open(in_path, 'rb').read()
+        enc = encrypt_data(data, algo, key)
+        out_path = in_path + '.enc'
+        with open(out_path, 'wb') as f:
+            f.write(enc['ciphertext'])
+        metadata = {'algorithm': algo, 'key': key.hex()}
+        # Include nonce/iv in metadata
+        if 'nonce' in enc:
+            metadata['nonce'] = enc['nonce'].hex()
+        if 'iv' in enc:
+            metadata['iv'] = enc['iv'].hex()
+        return render_template('encrypt_result.html', filename=os.path.basename(out_path), metadata=metadata)
+    return render_template('encrypt.html')
+
+# Decryption endpoint
+@app.route('/decrypt', methods=['GET', 'POST'])
+def decrypt_route():
+    if request.method == 'POST':
+        algo = request.form['algorithm']
+        key = bytes.fromhex(request.form['key'])
+        file = request.files['file']
+        in_path = os.path.join(app.config['UPLOAD_DIR'], file.filename)
+        file.save(in_path)
+        enc = {'ciphertext': open(in_path, 'rb').read()}
+        if algo == 'salsa20':
+            enc['nonce'] = bytes.fromhex(request.form['nonce'])
+        elif algo == 'aes':
+            enc['iv'] = bytes.fromhex(request.form['iv'])
+        data = decrypt_data(enc, algo, key)
+        out_path = in_path + '.dec'
+        with open(out_path, 'wb') as f:
+            f.write(data)
+        return send_file(out_path, as_attachment=True)
+    return render_template('decrypt.html')
+
+# Generate user key
+@app.route('/keygen', methods=['GET', 'POST'])
+def keygen():
+    if request.method == 'POST':
+        username = request.form['username']
+        entropy = int(request.form['entropy'])
+        try:
+            km = KeyManager()
+            km.createUsersKey(username, entropy)
+            flash(f'User key generated: {username}', 'success')
+        except Exception as e:
+            flash(f'Error: {e}', 'danger')
+        return redirect(url_for('keygen'))
+    return render_template('keygen.html')
+
+# Update nodes list
+def update_nodes(rpc_args=None):
+    updater = NodesUpdater()
+    if rpc_args:
+        updater.fetch_from_blockchain(*rpc_args)
+    else:
+        updater.fetch_from_public()
+    updater.save(app.config['DATA_DIR'])
+
+@app.route('/nodes', methods=['GET', 'POST'])
+def nodes():
+    if request.method == 'POST':
+        mode = request.form['mode']
+        rpc = None
+        if mode == 'rpc':
+            rpc = (
+                request.form['rpc_host'],
+                int(request.form['rpc_port']),
+                request.form['rpc_user'],
+                request.form['rpc_password']
+            )
+        try:
+            update_nodes(rpc)
+            flash('Nodes list updated', 'success')
+        except Exception as e:
+            flash(f'Error: {e}', 'danger')
+        return redirect(url_for('nodes'))
+    data = get_data('nodes.json') or {'nodes': []}
+    return render_template('nodes.html', nodes=data['nodes'])
+
+# Select service node
+@app.route('/nodes/select', methods=['POST'])
+def select_node():
+    node_url = request.form['node_url']
     try:
-        result = file_manager.upload_file(file, algorithm, key)
-        return jsonify({"success": True, "file": result})
+        km = KeyManager()
+        km.selectNode(node_url)
+        flash(f'Selected node: {node_url}', 'success')
     except Exception as e:
-        logger.exception("Upload failed")
-        return jsonify({"success": False, "error": str(e)}), 500
+        flash(f'Error: {e}', 'danger')
+    return redirect(url_for('nodes'))
 
-@app.route("/download/<shadowname>", methods=["GET"])
-def download_file_route(shadowname):
+# Select current user
+@app.route('/user', methods=['GET', 'POST'])
+def user():
+    km = KeyManager()
+    users = list(km.listUsers())
+    if request.method == 'POST':
+        username = request.form['username']
+        try:
+            km.changeCurrentUser(username)
+            flash(f'Current user set: {username}', 'success')
+        except Exception as e:
+            flash(f'Error: {e}', 'danger')
+        return redirect(url_for('user'))
+    return render_template('user.html', users=users)
+
+# Prepare NVS records
+@app.route('/publish', methods=['POST'])
+def publish():
+    km = KeyManager()
+    action = request.form['action']
     try:
-        file_path = file_manager.download_file(shadowname)
-        return send_file(file_path, as_attachment=True)
-    except FileNotFoundError as e:
-        return jsonify({"success": False, "error": str(e)}), 404
+        if action == 'user':
+            km.prepareUserNVS()
+        elif action == 'worm':
+            km.prepareWormNVS()
+        elif action == 'nodes':
+            km.prepareNodesNVS()
+        flash(f'{action.capitalize()} NVS prepared', 'success')
     except Exception as e:
-        logger.exception("Download failed")
-        return jsonify({"success": False, "error": str(e)}), 500
+        flash(f'Error: {e}', 'danger')
+    return redirect(url_for('index'))
 
-@app.route("/decrypt/<shadowname>", methods=["POST"])
-def decrypt_file_route(shadowname):
-    key = request.form.get("key")
-    if not key:
-        return jsonify({"success": False, "error": "Key is required"}), 400
-    try:
-        dec_file_path = file_manager.decrypt_file(shadowname, key)
-        return send_file(dec_file_path, as_attachment=True)
-    except EncryptionError as e:
-        logger.exception("Decryption failed")
-        return jsonify({"success": False, "error": str(e)}), 400
-    except FileNotFoundError as e:
-        return jsonify({"success": False, "error": str(e)}), 404
-    except Exception as e:
-        logger.exception("Decryption failed")
-        return jsonify({"success": False, "error": str(e)}), 500
+# Background task control
+@app.route('/task/<task_id>/start', methods=['POST'])
+def task_start(task_id):
+    with tasks_lock:
+        running_tasks[task_id] = {'status': 'running', 'progress': 0}
+    return jsonify(running_tasks[task_id])
 
-@app.route("/files/list", methods=["GET"])
-def list_files():
-    try:
-        files = file_manager.list_files()
-        return jsonify({"success": True, "files": files})
-    except Exception as e:
-        logger.exception("List files failed")
-        return jsonify({"success": False, "error": str(e)}), 500
+@app.route('/task/<task_id>/pause', methods=['POST'])
+def task_pause(task_id):
+    with tasks_lock:
+        if task_id in running_tasks:
+            running_tasks[task_id]['status'] = 'paused'
+    return jsonify(running_tasks.get(task_id, {}))
 
-@app.route("/files/info/<shadowname>", methods=["GET"])
-def file_info(shadowname):
-    try:
-        info = file_manager.file_info(shadowname)
-        return jsonify({"success": True, "info": info})
-    except FileNotFoundError as e:
-        return jsonify({"success": False, "error": str(e)}), 404
-    except Exception as e:
-        logger.exception("File info failed")
-        return jsonify({"success": False, "error": str(e)}), 500
+@app.route('/task/<task_id>/resume', methods=['POST'])
+def task_resume(task_id):
+    with tasks_lock:
+        if task_id in running_tasks:
+            running_tasks[task_id]['status'] = 'running'
+    return jsonify(running_tasks.get(task_id, {}))
 
-# --- Pause/Resume/Start/Progress endpoints ---
-@app.route("/operation/start", methods=["POST"])
-def start_operation():
-    op_id = request.json.get("op_id")
-    operation_states[op_id] = {"paused": False, "progress": 0}
-    return jsonify({"success": True, "status": "started"})
+@app.route('/task/<task_id>/progress', methods=['GET'])
+def task_progress(task_id):
+    return jsonify(running_tasks.get(task_id, {'status': 'unknown', 'progress': 0}))
 
-@app.route("/operation/pause", methods=["POST"])
-def pause_operation():
-    op_id = request.json.get("op_id")
-    if op_id not in operation_states:
-        return jsonify({"success": False, "error": "Invalid operation ID"}), 400
-    operation_states[op_id]["paused"] = True
-    return jsonify({"success": True, "status": "paused"})
-
-@app.route("/operation/resume", methods=["POST"])
-def resume_operation():
-    op_id = request.json.get("op_id")
-    if op_id not in operation_states:
-        return jsonify({"success": False, "error": "Invalid operation ID"}), 400
-    operation_states[op_id]["paused"] = False
-    return jsonify({"success": True, "status": "resumed"})
-
-@app.route("/operation/progress", methods=["GET"])
-def operation_progress():
-    op_id = request.args.get("op_id")
-    state = operation_states.get(op_id)
-    if not state:
-        return jsonify({"success": False, "error": "Invalid operation ID"}), 400
-    return jsonify({"success": True, "progress": state["progress"], "paused": state["paused"]})
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+if __name__ == '__main__':
+   # app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(host='0.0.0.0', port=5000, debug=True)
