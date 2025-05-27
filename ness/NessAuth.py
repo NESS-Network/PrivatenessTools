@@ -41,7 +41,7 @@ class NessAuth:
         auth_id = self.auth_id(user_private_key, node_url, node_nonce, username, user_nonce)
 
         url = node_full_url + "/" + shadowname + "/" + urllib.parse.quote_plus(auth_id)
-        result = requests.post(url, data = data).text
+        result = requests.post(url, data = data, verify=False).text
         return json.loads(result)
 
     def get_responce_by_auth_id(self, node_full_url: str, user_private_key: str, node_url: str, node_nonce: str, username: str, shadowname: str,
@@ -77,7 +77,7 @@ class NessAuth:
         params.update(additional_params)
 
         return json.loads(
-            requests.post(url, params).text
+            requests.post(url, params, verify=False).text
         )
 
     def verify_two_way_result(self, node_verify_key: str, result: dict):
