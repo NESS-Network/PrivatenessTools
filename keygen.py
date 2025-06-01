@@ -36,6 +36,9 @@ class Keygen:
         print("  Works on ed25519 for keypairs")
         print("  Adjustable entropy when generating private keys")
         print("### USAGE:")
+        print("#### Generate new human")
+        print("  ./keygen human <humanname> <Entropy level>")
+        print("  Example: $ ./keygen human Neo 5")
         print("#### Generate new user")
         print("  ./keygen user <username> <Entropy level>")
         print("  Example: $ ./keygen user user1 5")
@@ -83,24 +86,30 @@ class Keygen:
                 return manager.createUsersKey(username, entropy)            
             except UserExist as e:
                 print("User with username '{}' olready exists".format(username))
-                print("See active users with $ ./user ls")
+                print("See users list with $ ./user ls")
 
             exit(0)
-        # elif ARGS.args(['userkey', str, str]):
-        #     username = sys.argv[2]
+        elif ARGS.args(['human', str, str]):
+            humanname = sys.argv[2]
 
-        #     if self.__is_integer(ARGS.arg(3)):
-        #         entropy = int(ARGS.arg(3))
+            if self.__is_integer(ARGS.arg(3)):
+                entropy = int(ARGS.arg(3))
 
-        #         if entropy < 1:
-        #             entropy = 1
-        #     else:
-        #         print("<Entropy level> must be integer")
-        #         return False
+                if entropy < 1:
+                    entropy = 1
+            else:
+                print("<Entropy level> must be integer")
+                return False
 
-        #     manager = Container.KeyManager()
+            manager = Container.KeyManager()
 
-        #     return manager.createUserKey(username, entropy)
+            try:
+                return manager.createHumansKey(humanname, entropy)            
+            except UserExist as e:
+                print("Human with humanname '{}' olready exists".format(humanname))
+                print("See humans list with $ ./human ls")
+
+            exit(0)
 
         elif ARGS.args(['node', str, str, str, str, str, str]):
             url = sys.argv[2]
