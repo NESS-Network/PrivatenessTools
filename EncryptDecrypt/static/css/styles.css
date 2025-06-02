@@ -1,0 +1,82 @@
+body {
+    background: #101c2a; color: #e0e0e0; 
+    font-family: 'Fira Sans', Arial, sans-serif; 
+    margin: 0; 
+    max-width: 700px;
+    margin: 40px auto; 
+    background: #171f2e;          
+    border-radius: 12px; 
+    box-shadow: 0 0 12px #0008;          
+    padding: 2em 2.5em;
+    
+    }
+/*.container { 
+    max-width: 700px;
+    margin: 40px auto; 
+    background: #171f2e;          
+    border-radius: 12px; 
+    box-shadow: 0 0 12px #0008;          
+    padding: 2em 2.5em;                   
+}*/
+h1 { 
+    color: #6ec6ff;
+    text-align: center;
+ }
+
+ nav a {
+    color: #2196f3;
+ }
+ nav a:hover {
+    color: #e0e0e0;
+ }
+  button .select {
+    padding: 0.5em 1em;
+  }
+  button:hover {
+    background-color: #e0e0e0;
+  }
+label { 
+    display: block; 
+    margin-top: 1.3em; 
+    font-weight: bold; 
+}
+input,
+textarea,
+select {
+     width: 100%; 
+     margin-top: 0.3em;
+     padding: 0.5em; 
+     font-size: 1em; 
+     border-radius: 6px; 
+     border: 1px solid #28334a; 
+     background: #101c2a; 
+     color: #e0e0e0; 
+}
+button { 
+    margin-top: 1.5em;
+    padding: 0.7em 2em; 
+    border: none; 
+    border-radius: 6px; 
+    background: #6ec6ff; 
+    color: #101c2a; 
+    font-weight: bold; 
+    cursor: pointer; 
+    font-size: 1.1em;
+}
+button:active { 
+    background: #2196f3;
+}
+.flashes { 
+    list-style: none; 
+    padding: 0;
+}
+.flashes li { 
+    margin-bottom: 0.5em;
+}
+.flashes .success {
+    color: #6efc97;
+}
+.flashes .danger { 
+    color: #fc6e6e;
+}
+@media (max-width: 800px) { .container { padding: 1em 0.5em; } }
