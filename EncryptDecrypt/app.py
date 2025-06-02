@@ -1,225 +1,346 @@
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import json
 import threading
+import json
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
-from NessKeys.KeyManager import KeyManager
+import subprocess
+# extend PYTHONPATH to project root
+dir_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, dir_root)
+
+# Import container for dependency injection
 from framework.Container import Container
+# Import key management and cryptors from NessKeys
+from NessKeys.KeyManager import KeyManager
 from services.node import node as NodesUpdater
+from NessKeys.cryptors.Aes import Aes as AESCipher
+from NessKeys.cryptors.Salsa20 import Salsa20 as Salsa20Cipher
 from NessKeys.JsonChecker.Checker import JsonChecker
-from Crypto.Cipher import AES, Salsa20
-from Crypto.Random import get_random_bytes
 
 # Initialize Flask app
-app = Flask(__name__)
-app.config.from_mapping(
-    SECRET_KEY=os.environ.get('FLASK_SECRET', 'replace-with-secure-key'),
-    DATA_DIR=os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data'),
-    UPLOAD_DIR=os.path.join(os.path.abspath(os.path.dirname(__file__)), 'uploads')
-)
+def create_app():
+    app = Flask(__name__)
+    # Configuration
+    app.config.from_mapping(
+        SECRET_KEY=os.environ.get('FLASK_SECRET', 'supersecret'),
+        UPLOAD_FOLDER=os.environ.get('UPLOAD_FOLDER', os.path.join(dir_root, 'uploads')),
+        NODES_JSON=os.environ.get('NODES_JSON', os.path.join(dir_root, 'nodes.json')),
+        MAX_CONTENT_LENGTH=16 * 1024 * 1024  # 16MB limit
+    )
 
-# Ensure necessary directories exist
-os.makedirs(app.config['DATA_DIR'], exist_ok=True)
-os.makedirs(app.config['UPLOAD_DIR'], exist_ok=True)
+    # Ensure upload folder exists
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Globals for background tasks
-running_tasks = {}
-tasks_lock = threading.Lock()
+    # Thread-safe storage for background tasks
+    tasks_lock = threading.Lock()
+    running_tasks = {}
 
-# Encryption utilities
-def encrypt_data(data: bytes, algo: str, key: bytes) -> dict:
-    if algo == 'salsa20':
-        cipher = Salsa20.new(key=key)
-        return {'nonce': cipher.nonce, 'ciphertext': cipher.encrypt(data)}
-    elif algo == 'aes':
-        iv = get_random_bytes(16)
-        cipher = AES.new(key, AES.MODE_CFB, iv=iv)
-        return {'iv': iv, 'ciphertext': cipher.encrypt(data)}
-    else:
-        raise ValueError('Unsupported algorithm')
+    # Helpers
+    def get_km():
+        return Container.KeyManager()
+    filemgr = Container.FileManager()
 
-def decrypt_data(enc: dict, algo: str, key: bytes) -> bytes:
-    if algo == 'salsa20':
-        cipher = Salsa20.new(key=key, nonce=enc['nonce'])
-        return cipher.decrypt(enc['ciphertext'])
-    elif algo == 'aes':
-        cipher = AES.new(key, AES.MODE_CFB, iv=enc['iv'])
-        return cipher.decrypt(enc['ciphertext'])
-    else:
-        raise ValueError('Unsupported algorithm')
+    # ----- Routes -----
 
-# Home route
-def get_data(filename):
-    path = os.path.join(app.config['DATA_DIR'], filename)
-    try:
-        with open(path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return None
+    @app.route('/')
+    def index():
+        return render_template('index.html')
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-# Encryption endpoint
-@app.route('/encrypt', methods=['GET', 'POST'])
-def encrypt_route():
-    if request.method == 'POST':
-        algo = request.form['algorithm']
-        file = request.files['file']
-        key = get_random_bytes(32)
-        in_path = os.path.join(app.config['UPLOAD_DIR'], file.filename)
-        file.save(in_path)
-        data = open(in_path, 'rb').read()
-        enc = encrypt_data(data, algo, key)
-        out_path = in_path + '.enc'
-        with open(out_path, 'wb') as f:
-            f.write(enc['ciphertext'])
-        metadata = {'algorithm': algo, 'key': key.hex()}
-        # Include nonce/iv in metadata
-        if 'nonce' in enc:
-            metadata['nonce'] = enc['nonce'].hex()
-        if 'iv' in enc:
-            metadata['iv'] = enc['iv'].hex()
-        return render_template('encrypt_result.html', filename=os.path.basename(out_path), metadata=metadata)
-    return render_template('encrypt.html')
-
-# Decryption endpoint
-@app.route('/decrypt', methods=['GET', 'POST'])
-def decrypt_route():
-    if request.method == 'POST':
-        algo = request.form['algorithm']
-        key = bytes.fromhex(request.form['key'])
-        file = request.files['file']
-        in_path = os.path.join(app.config['UPLOAD_DIR'], file.filename)
-        file.save(in_path)
-        enc = {'ciphertext': open(in_path, 'rb').read()}
-        if algo == 'salsa20':
-            enc['nonce'] = bytes.fromhex(request.form['nonce'])
-        elif algo == 'aes':
-            enc['iv'] = bytes.fromhex(request.form['iv'])
-        data = decrypt_data(enc, algo, key)
-        out_path = in_path + '.dec'
-        with open(out_path, 'wb') as f:
-            f.write(data)
-        return send_file(out_path, as_attachment=True)
-    return render_template('decrypt.html')
-
-# Generate user key
-@app.route('/keygen', methods=['GET', 'POST'])
-def keygen():
-    if request.method == 'POST':
+    @app.route('/keygen', methods=['GET', 'POST'])
+    def keygen():
+        if request.method == 'GET':
+            return render_template('keygen.html')
         username = request.form['username']
-        entropy = int(request.form['entropy'])
+        entropy = int(request.form.get('entropy', 256))
         try:
-            km = KeyManager()
+            km = get_km()
             km.createUsersKey(username, entropy)
             flash(f'User key generated: {username}', 'success')
         except Exception as e:
-            flash(f'Error: {e}', 'danger')
+            flash(f'Error generating key: {e}', 'danger')
         return redirect(url_for('keygen'))
-    return render_template('keygen.html')
 
-# Update nodes list
-def update_nodes(rpc_args=None):
-    updater = NodesUpdater()
-    if rpc_args:
-        updater.fetch_from_blockchain(*rpc_args)
-    else:
-        updater.fetch_from_public()
-    updater.save(app.config['DATA_DIR'])
+    @app.route('/nodes', methods=['GET', 'POST'])
+    def nodes():
+        km = get_km()
+        if request.method == 'POST':
+            mode = request.form['mode']
+            try:
+                if mode == 'public':
+                    NodesUpdater.fetch_public_list()
+                    flash('Public list fetched', 'success')
+                else:
+                    rpc = {
+                        'host': request.form['rpc_host'],
+                        'port': request.form['rpc_port'],
+                        'user': request.form['rpc_user'],
+                        'password': request.form['rpc_password']
+                    }
+                    NodesUpdater.update_blockchain(rpc, app.config['NODES_JSON'])
+                    flash('Updated from RPC', 'success')
+            except Exception as e:
+                flash(f'Error managing nodes: {e}', 'danger')
+            return redirect(url_for('nodes'))
+        nodes = km.listNodes()
+        return render_template('nodes.html', nodes=nodes)
 
-@app.route('/nodes', methods=['GET', 'POST'])
-def nodes():
-    if request.method == 'POST':
-        mode = request.form['mode']
-        rpc = None
-        if mode == 'rpc':
-            rpc = (
-                request.form['rpc_host'],
-                int(request.form['rpc_port']),
-                request.form['rpc_user'],
-                request.form['rpc_password']
-            )
+    @app.route('/node', methods=['POST'])
+    def select_node():
+        """Mark a node as selected in the nodes.json file, creating it if missing."""
+        node_url = request.form['node_url']
+        nodes_file = app.config['NODES_JSON']
         try:
-            update_nodes(rpc)
-            flash('Nodes list updated', 'success')
+            # Load or initialize nodes JSON
+            if not os.path.exists(nodes_file):
+                data = {'nodes': [], 'selected_node': node_url}
+            else:
+                with open(nodes_file, 'r') as f:
+                    try:
+                        data = json.load(f)
+                    except json.JSONDecodeError:
+                        data = {}
+                # Ensure dict
+                if not isinstance(data, dict):
+                    data = {'nodes': data}
+                data['selected_node'] = node_url
+            # Write back
+            with open(nodes_file, 'w') as f:
+                json.dump(data, f, indent=2)
+            flash(f'Node selected: {node_url}', 'success')
         except Exception as e:
-            flash(f'Error: {e}', 'danger')
+            flash(f'Error selecting node: {e}', 'danger')
         return redirect(url_for('nodes'))
-    data = get_data('nodes.json') or {'nodes': []}
-    return render_template('nodes.html', nodes=data['nodes'])
 
-# Select service node
-@app.route('/nodes/select', methods=['POST'])
-def select_node():
-    node_url = request.form['node_url']
-    try:
-        km = KeyManager()
-        km.selectNode(node_url)
-        flash(f'Selected node: {node_url}', 'success')
-    except Exception as e:
-        flash(f'Error: {e}', 'danger')
-    return redirect(url_for('nodes'))
+    @app.route('/user', methods=['GET', 'POST'])
+    def user():
+        # POST: perform sel | nvs | worm via user.py
+        if request.method == 'POST':
+            username = request.form.get('username', '').strip()
+            action   = request.form.get('action', '').strip()
 
-# Select current user
-@app.route('/user', methods=['GET', 'POST'])
-def user():
-    km = KeyManager()
-    users = list(km.listUsers())
-    if request.method == 'POST':
-        username = request.form['username']
+            if not username:
+                flash('Please select a user first.', 'warning')
+                return redirect(url_for('user'))
+
+            if action not in ('sel', 'nvs', 'worm'):
+                flash('Invalid action.', 'danger')
+                return redirect(url_for('user'))
+
+            cli = os.path.join(dir_root, 'user.py')
+            cmd = [sys.executable, cli, action, username]
+
+            try:
+                result = subprocess.run(
+                    cmd,
+                    cwd=dir_root,
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                # Use stdout if available, else fallback to a canned message
+                out = result.stdout.strip() or f'User {action} completed for {username}.'
+                flash(out, 'success')
+            except subprocess.CalledProcessError as e:
+                err = e.stderr.strip() or e.stdout.strip() or str(e)
+                flash(f'Error ({action}): {err}', 'danger')
+
+            return redirect(url_for('user'))
+
+        # GET: fetch users via `user.py ls`
+        users = []
+        cli = os.path.join(dir_root, 'user.py')
         try:
-            km.changeCurrentUser(username)
-            flash(f'Current user set: {username}', 'success')
+            result = subprocess.run(
+                [sys.executable, cli, 'ls'],
+                cwd=dir_root,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            for line in result.stdout.splitlines():
+                line = line.strip()
+                # Lines that start with '|' and contain real content
+                if line.startswith('|') and not set(line.strip()).issubset({'|','-'}):
+                    name = line.strip('|').strip()
+                    # strip CLI arrows: ==> user <==
+                    name = name.replace('==>', '').replace('<==', '').strip()
+                    if name.lower() != 'username':
+                        users.append(name)
+        except subprocess.CalledProcessError as e:
+            flash('Failed to fetch users. Please ensure user.py is working.', 'danger')
+
+        return render_template('user.html', users=users)
+
+    @app.route('/publish', methods=['GET', 'POST'])
+    def publish():
+        if request.method == 'GET':
+            return render_template('publish.html')
+        action = request.form['action']
+        try:
+            km = get_km()
+            if action == 'user':
+                km.prepareUserNVS()
+            elif action == 'worm':
+                km.prepareWormNVS()
+            elif action == 'nodes':
+                km.prepareNodesNVS()
+            flash('Prepared NVS records', 'success')
+        except Exception as e:
+            flash(f'Error preparing NVS: {e}', 'danger')
+        return redirect(url_for('publish'))
+
+    # File system operations
+    @app.route('/upload', methods=['POST'])
+    def upload():
+        file = request.files['file']
+        dest = request.form.get('destination', '')
+        try:
+            filemgr.upload(file, dest)
+            flash('Upload successful', 'success')
+        except Exception as e:
+            flash(f'Error uploading: {e}', 'danger')
+        return redirect(url_for('index'))
+
+    @app.route('/download')
+    def download():
+        path = request.args.get('path')
+        try:
+            return filemgr.download(path)
+        except Exception as e:
+            flash(f'Error downloading: {e}', 'danger')
+            return redirect(url_for('index'))
+
+    @app.route('/mkdir', methods=['POST'])
+    def mkdir():
+        path = request.form['path']
+        try:
+            filemgr.mkdir(path)
+            flash('Directory created', 'success')
         except Exception as e:
             flash(f'Error: {e}', 'danger')
-        return redirect(url_for('user'))
-    return render_template('user.html', users=users)
+        return redirect(url_for('index'))
 
-# Prepare NVS records
-@app.route('/publish', methods=['POST'])
-def publish():
-    km = KeyManager()
-    action = request.form['action']
-    try:
-        if action == 'user':
-            km.prepareUserNVS()
-        elif action == 'worm':
-            km.prepareWormNVS()
-        elif action == 'nodes':
-            km.prepareNodesNVS()
-        flash(f'{action.capitalize()} NVS prepared', 'success')
-    except Exception as e:
-        flash(f'Error: {e}', 'danger')
-    return redirect(url_for('index'))
+    @app.route('/rmdir', methods=['POST'])
+    def rmdir():
+        path = request.form['path']
+        try:
+            filemgr.rmdir(path)
+            flash('Directory removed', 'success')
+        except Exception as e:
+            flash(f'Error: {e}', 'danger')
+        return redirect(url_for('index'))
 
-# Background task control
-@app.route('/task/<task_id>/start', methods=['POST'])
-def task_start(task_id):
-    with tasks_lock:
-        running_tasks[task_id] = {'status': 'running', 'progress': 0}
-    return jsonify(running_tasks[task_id])
+    @app.route('/ls')
+    def ls():
+        path = request.args.get('path', '')
+        try:
+            return jsonify(filemgr.ls(path))
+        except Exception as e:
+            return jsonify({'error': str(e)})
 
-@app.route('/task/<task_id>/pause', methods=['POST'])
-def task_pause(task_id):
-    with tasks_lock:
-        if task_id in running_tasks:
-            running_tasks[task_id]['status'] = 'paused'
-    return jsonify(running_tasks.get(task_id, {}))
+    @app.route('/move', methods=['POST'])
+    def move():
+        src = request.form['src']
+        dst = request.form['dst']
+        try:
+            filemgr.move(src, dst)
+            flash('Move successful', 'success')
+        except Exception as e:
+            flash(f'Error: {e}', 'danger')
+        return redirect(url_for('index'))
 
-@app.route('/task/<task_id>/resume', methods=['POST'])
-def task_resume(task_id):
-    with tasks_lock:
-        if task_id in running_tasks:
-            running_tasks[task_id]['status'] = 'running'
-    return jsonify(running_tasks.get(task_id, {}))
+    @app.route('/remove', methods=['POST'])
+    def remove():
+        path = request.form['path']
+        try:
+            filemgr.remove(path)
+            flash('Removed', 'success')
+        except Exception as e:
+            flash(f'Error: {e}', 'danger')
+        return redirect(url_for('index'))
 
-@app.route('/task/<task_id>/progress', methods=['GET'])
-def task_progress(task_id):
-    return jsonify(running_tasks.get(task_id, {'status': 'unknown', 'progress': 0}))
+    @app.route('/tree')
+    def tree():
+        root = request.args.get('root', '')
+        try:
+            return jsonify(filemgr.tree(root))
+        except Exception as e:
+            return jsonify({'error': str(e)})
+
+    @app.route('/quota')
+    def quota():
+        try:
+            return jsonify(filemgr.quota())
+        except Exception as e:
+            return jsonify({'error': str(e)})
+
+    @app.route('/fileinfo')
+    def fileinfo():
+        path = request.args.get('path')
+        try:
+            return jsonify(filemgr.fileinfo(path))
+        except Exception as e:
+            return jsonify({'error': str(e)})
+
+    # Encryption/Decryption
+    @app.route('/encrypt', methods=['GET', 'POST'], endpoint='encrypt_route')
+    def encrypt():
+        if request.method == 'GET':
+            return render_template('encrypt.html')
+        algorithm = request.form['algorithm']
+        file = request.files['file']
+        km = get_km()
+        key = km.getCurrentKey()  # uses selected user context
+        cipher = AESCipher(key) if algorithm == 'aes' else Salsa20Cipher(key)
+        infile = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(infile)
+        outfile = cipher.encrypt_file(infile)
+        metadata = cipher.get_metadata()
+        return render_template('encrypt_result.html', filename=os.path.basename(outfile), metadata=metadata)
+
+    @app.route('/decrypt', methods=['GET', 'POST'], endpoint='decrypt_route')
+    def decrypt():
+        if request.method == 'GET':
+            return render_template('decrypt.html')
+        algorithm = request.form['algorithm']
+        key_hex = request.form['key']
+        nonce = request.form.get('nonce')
+        iv = request.form.get('iv')
+        file = request.files['file']
+        key = bytes.fromhex(key_hex)
+        cipher = AESCipher(key, iv=bytes.fromhex(iv)) if algorithm == 'aes' else Salsa20Cipher(key, nonce=bytes.fromhex(nonce))
+        infile = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(infile)
+        outfile = cipher.decrypt_file(infile)
+        return render_template('decrypt_result.html', filename=os.path.basename(outfile))
+
+    # Background tasks
+    @app.route('/task/<task_id>/start', methods=['POST'])
+    def task_start(task_id):
+        with tasks_lock:
+            running_tasks[task_id] = {'status': 'running', 'progress': 0}
+        return jsonify(running_tasks[task_id])
+
+    @app.route('/task/<task_id>/pause', methods=['POST'])
+    def task_pause(task_id):
+        with tasks_lock:
+            if task_id in running_tasks:
+                running_tasks[task_id]['status'] = 'paused'
+        return jsonify(running_tasks.get(task_id, {}))
+
+    @app.route('/task/<task_id>/resume', methods=['POST'])
+    def task_resume(task_id):
+        with tasks_lock:
+            if task_id in running_tasks:
+                running_tasks[task_id]['status'] = 'running'
+        return jsonify(running_tasks.get(task_id, {}))
+
+    @app.route('/task/<task_id>/progress', methods=['GET'])
+    def task_progress(task_id):
+        return jsonify(running_tasks.get(task_id, {'status': 'unknown', 'progress': 0}))
+
+    return app
 
 if __name__ == '__main__':
-   # app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app = create_app()
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -1,12 +1,18 @@
 {% extends 'layout.html' %}
 {% block content %}
-  <h2>Select User</h2>
+  <h2>User Management</h2>
   <form method="post">
-    <select name="username">
+    <label for="username">Select user:</label>
+    <select name="username" id="username">
       {% for u in users %}
         <option value="{{ u }}">{{ u }}</option>
       {% endfor %}
     </select>
-    <button type="submit">Set Current User</button>
+
+    <div style="margin-top: 1em;">
+      <button name="action" value="sel">Set Current User</button>
+      <button name="action" value="nvs">Prepare User NVS</button>
+      <button name="action" value="worm">Prepare Worm NVS</button>
+    </div>
   </form>
 {% endblock %}

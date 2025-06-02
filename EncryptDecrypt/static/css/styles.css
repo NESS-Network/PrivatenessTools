@@ -29,7 +29,12 @@ h1 {
  nav a:hover {
     color: #e0e0e0;
  }
- 
+  button .select {
+    padding: 0.5em 1em;
+  }
+  button:hover {
+    background-color: #e0e0e0;
+  }
 label { 
     display: block; 
     margin-top: 1.3em; 

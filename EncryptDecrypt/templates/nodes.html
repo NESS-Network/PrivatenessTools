@@ -13,14 +13,14 @@
     <button type="submit">Update Nodes</button>
   </form>
 
-  <h3>Available Nodes</h3>
+  <h3>Available Nodes:</h3>
   <ul>
   {% for node in nodes %}
     <li>
       {{ node.url }} ({{ node.network }}, Services: {{ node.services|join(', ') }})
       <form method="post" action="{{ url_for('select_node') }}" style="display:inline;">
         <input type="hidden" name="node_url" value="{{ node.url }}">
-        <button type="submit">Select</button>
+        <button type="submit" class="select">Select</button>
       </form>
     </li>
   {% endfor %}
