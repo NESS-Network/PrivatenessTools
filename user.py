@@ -87,7 +87,13 @@ class Noder:
 
         elif ARGS.args(['sel', str]) or ARGS.args(['sl', str]):
             manager = Container.KeyManager()
-            manager.changeCurrentUser(sys.argv[2])
+
+            try:
+                manager.changeCurrentUser(sys.argv[2])            
+            except NodeNotSelected as e:
+                print("No node selected")
+                print("Run $ ./node sel <node_url>")
+
             self.print_userlist()
 
         elif ARGS.args(['check']) or ARGS.args(['chk']) or ARGS.args(['ch']):
