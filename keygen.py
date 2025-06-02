@@ -17,6 +17,8 @@ import NessKeys.Prng as prng
 from framework.Container import Container
 from framework.ARGS import ARGS
 
+from NessKeys.exceptions.UserExist import UserExist
+
 class Keygen:
 
     def __is_integer(self, n):
@@ -34,12 +36,15 @@ class Keygen:
         print("  Works on ed25519 for keypairs")
         print("  Adjustable entropy when generating private keys")
         print("### USAGE:")
+        print("#### Generate new human")
+        print("  ./keygen human <humanname> <Entropy level>")
+        print("  Example: $ ./keygen human Neo 5")
         print("#### Generate new user")
         print("  ./keygen user <username> <Entropy level>")
         print("  Example: $ ./keygen user user1 5")
-        print("#### Generate user and add userinfo to bith users (~/.privateness-keys/users.key.json) and user (user.key.json) key")
-        print("  ./keygen userkey <username> <Entropy level>")
-        print("  Example: $ ./keygen userkey user1 5")
+        # print("#### Generate user and add userinfo to bith users (~/.privateness-keys/users.key.json) and user (user.key.json) key")
+        # print("  ./keygen userkey <username> <Entropy level>")
+        # print("  Example: $ ./keygen userkey user1 5")
         print("#### Generate node Key")
         print("  ./keygen node <Node name or URL> <Tariff> master-user-name \"coma,separated,services\" \"network\"  <Entropy level>")
         print("  Example: $ ./keygen node http://my-node.net 111 master \"prng,files\" inet 5")
@@ -77,9 +82,15 @@ class Keygen:
 
             manager = Container.KeyManager()
 
-            return manager.createUsersKey(username, entropy)
-        elif ARGS.args(['userkey', str, str]):
-            username = sys.argv[2]
+            try:
+                return manager.createUsersKey(username, entropy)            
+            except UserExist as e:
+                print("User with username '{}' olready exists".format(username))
+                print("See users list with $ ./user ls")
+
+            exit(0)
+        elif ARGS.args(['human', str, str]):
+            humanname = sys.argv[2]
 
             if self.__is_integer(ARGS.arg(3)):
                 entropy = int(ARGS.arg(3))
@@ -92,7 +103,13 @@ class Keygen:
 
             manager = Container.KeyManager()
 
-            return manager.createUserKey(username, entropy)
+            try:
+                return manager.createHumansKey(humanname, entropy)            
+            except UserExist as e:
+                print("Human with humanname '{}' olready exists".format(humanname))
+                print("See humans list with $ ./human ls")
+
+            exit(0)
 
         elif ARGS.args(['node', str, str, str, str, str, str]):
             url = sys.argv[2]

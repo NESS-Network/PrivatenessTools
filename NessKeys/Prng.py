@@ -179,7 +179,7 @@ class UhePrng:
 
 		for i in range(0, count - 1):
 			# rand = file.read(1024)
-			rand = os.urandom(1024)
+			rand = b64encode(os.urandom(1024)).decode('utf-8')
 
 			self.add_entropy(rand)
 

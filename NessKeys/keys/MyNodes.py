@@ -74,7 +74,10 @@ class MyNodes(NessKey):
         return self.__current[0]
 
     def getCurrentNodeUrl(self) -> str:
-        return self.__current[1]
+        if len(self.__current) == 2:
+            return self.__current[1]
+        else:
+            return False
 
     def findNode(self, user_name: str, node_url: str):
         if user_name in self.__nodes and node_url in self.__nodes[user_name]:

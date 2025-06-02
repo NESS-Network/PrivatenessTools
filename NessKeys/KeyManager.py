@@ -49,12 +49,14 @@ from NessKeys.exceptions.BlockchainSettingsFileNotExist import BlockchainSetting
 from NessKeys.exceptions.NodesFileDoesNotExist import NodesFileDoesNotExist
 from NessKeys.exceptions.EmptyNodesList import EmptyNodesList
 from NessKeys.exceptions.NodeError import NodeError
+from NessKeys.exceptions.NodeNotSelected import NodeNotSelected
 from NessKeys.exceptions.NodeNotInList import NodeNotInList
 from NessKeys.exceptions.UserNotFound import UserNotFound
 from NessKeys.exceptions.UsersKeyDoesNotExist import UsersKeyDoesNotExist
 from NessKeys.exceptions.FilesKeyDoesNotExist import FilesKeyDoesNotExist
 from NessKeys.exceptions.DirectoriesKeyDoesNotExist import DirectoriesKeyDoesNotExist
 from NessKeys.exceptions.MyNodesFileDoesNotExist import MyNodesFileDoesNotExist
+from NessKeys.exceptions.UserExist import UserExist
 from NessKeys.JsonChecker.exceptions.LeafBuildException import LeafBuildException
 
 class KeyManager:
@@ -117,22 +119,8 @@ class KeyManager:
         if keydata != False:
             userskey.load(keydata)
 
-        key_pair = self.__keypair(entropy)
-
-        nonce = b64encode(get_random_bytes(16)).decode('utf-8')
-
-        userskey.addNewUser(username, key_pair[0], key_pair[2], key_pair[1], nonce)
-
-        self.__storage.save(userskey.compile(), filename)
-
-    def createUserKey(self, username: str, entropy: int):
-        userskey = Users()
-        filename = self.fileName(userskey.getFilename())
-
-        keydata = self.__storage.restore(filename)
-
-        if keydata != False:
-            userskey.load(keydata)
+        if userskey.findUser(username) != False:
+            raise UserExist(username)
 
         key_pair = self.__keypair(entropy)
 
@@ -141,24 +129,6 @@ class KeyManager:
         userskey.addNewUser(username, key_pair[0], key_pair[2], key_pair[1], nonce)
 
         self.__storage.save(userskey.compile(), filename)
-
-        userkey = User()
-
-        userkey.load({
-            "filedata": {
-                "vendor": "Privateness",
-                "type": "key",
-                "for": "user"
-            },
-            "username": username,
-            "private": key_pair[0],
-            "public": key_pair[2],
-            "verify": key_pair[1],
-            "nonce": nonce,
-            "signatures": {},
-        })
-        # print(userkey.compile(), userkey.getFilename())
-        self.__storage.save(userkey.compile(), userkey.getFilename())
 
     def showUsersKey(self) -> dict|bool:
         userskey = Users()
@@ -178,6 +148,19 @@ class KeyManager:
             'worm': userskey.worm()
         }
 
+    def userExists(self, username: str) -> dict|bool:
+        userskey = Users()
+        filename = self.fileName(userskey.getFilename())
+
+        keydata = self.__storage.restore(filename)
+
+        if keydata == False:
+            return False
+
+        userskey.load(keydata)
+
+        return (userskey.findUser(username) != False)
+
 
     def changeCurrentUser(self, username: str):
         userskey = Users()
@@ -186,9 +169,6 @@ class KeyManager:
         keydata = self.__storage.restore(filename)
 
         userskey.load(keydata)
-
-        if userskey.findUser(username) == False:
-            raise UserNotFound(username)
 
         userskey.setCurrentUser(username)
 
@@ -202,6 +182,10 @@ class KeyManager:
         myNodesKey.load(keydata)
 
         node_url = myNodesKey.getCurrentNodeUrl()
+
+        if node_url == False:
+            raise NodeNotSelected('')
+
         myNodesKey.changeCurrentNode(username, node_url)
 
         self.__storage.save(myNodesKey.compile(), filename)
@@ -963,7 +947,7 @@ class KeyManager:
         generator = prng.UhePrng()
 
         for i in range (0, entropy):
-            rand = os.urandom(1024)
+            rand = b64encode(os.urandom(1024)).decode('utf-8')
             # with open('/dev/random', 'rb') as file:
             #     rand = b64encode(file.read(1024)).decode('utf-8')
             #     file.close()
@@ -983,7 +967,7 @@ class KeyManager:
         generator = prng.UhePrng()
 
         for i in range (0, entropy):
-            rand = os.urandom(1024)
+            rand = b64encode(os.urandom(1024)).decode('utf-8')
             # with open('/dev/random', 'rb') as file:
             #     rand = b64encode(file.read(1024)).decode('utf-8')
             #     file.close()
