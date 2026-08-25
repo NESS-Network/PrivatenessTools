@@ -1,0 +1,9 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2>Generate User Key</h2>
+  <form method="post">
+    <label>Username:<input name="username" required></label><br>
+    <label>Entropy:<input type="number" name="entropy" value="5" min="1"></label><br>
+    <button type="submit">Generate Key</button>
+  </form>
+{% endblock %}
