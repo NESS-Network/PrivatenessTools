@@ -12,6 +12,7 @@ from NessKeys.exceptions.NodeNotSelected import NodeNotSelected
 
 import requests
 
+
 class Lister:
 
     def __manual(self):
@@ -26,7 +27,7 @@ class Lister:
 
         if len(sys.argv) == 1:
             fm = Container.FileManager()
-            
+
             try:
                 fm.initKeys()
                 fm.saveKeys()
@@ -45,16 +46,18 @@ class Lister:
             except AuthError as e:
                 print("Responce verification error")
             except NodeNotSelected as e:
-                print("Current node is not set or not joined, try: ./node sel <node_url>")
+                print(
+                    "Current node is not set or not joined, try: ./node sel <node_url>"
+                )
 
-        elif len(sys.argv) == 2 and sys.argv[1].lower() == 'raw':
+        elif len(sys.argv) == 2 and sys.argv[1].lower() == "raw":
             fm = Container.FileManager()
-            
+
             try:
                 fm.initKeys()
                 fm.saveKeys()
                 fm.raw()
-                
+
             except MyNodesFileDoesNotExist as e:
                 print("MY NODES file not found.")
                 print("RUN ./node set node-url")
@@ -68,10 +71,13 @@ class Lister:
             except AuthError as e:
                 print("Responce verification error")
             except NodeNotSelected as e:
-                print("Current node is not set or not joined, try: ./node sel <node_url>")
+                print(
+                    "Current node is not set or not joined, try: ./node sel <node_url>"
+                )
 
         else:
             self.__manual()
+
 
 ls = Lister()
 ls.process()
