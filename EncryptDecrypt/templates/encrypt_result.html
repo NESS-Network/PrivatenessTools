@@ -1,0 +1,11 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2>Encryption Result</h2>
+  <p>Encrypted file: <a href="{{ url_for('static', filename='uploads/' + filename) }}" download>{{ filename }}</a></p>
+  <h3>Metadata</h3>
+  <ul>
+    {% for key, val in metadata.items() %}
+      <li>{{ key }}: {{ val }}</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

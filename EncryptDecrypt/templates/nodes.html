@@ -1,0 +1,33 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2>Manage Nodes</h2>
+  <form method="post">
+    <label><input type="radio" name="mode" value="public" checked> Public List</label>
+    <label><input type="radio" name="mode" value="rpc"> Blockchain RPC</label><br>
+    <div id="rpc-fields" style="display:none;">
+      <input name="rpc_host" placeholder="RPC Host"><br>
+      <input name="rpc_port" placeholder="RPC Port"><br>
+      <input name="rpc_user" placeholder="RPC User"><br>
+      <input name="rpc_password" placeholder="RPC Password"><br>
+    </div>
+    <button type="submit">Update Nodes</button>
+  </form>
+
+  <h3>Available Nodes:</h3>
+  <ul>
+  {% for node in nodes %}
+    <li>
+      {{ node.url }} ({{ node.network }}, Services: {{ node.services|join(', ') }})
+      <form method="post" action="{{ url_for('select_node') }}" style="display:inline;">
+        <input type="hidden" name="node_url" value="{{ node.url }}">
+        <button type="submit" class="select">Select</button>
+      </form>
+    </li>
+  {% endfor %}
+  </ul>
+  <script>
+    document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', e => {
+      document.getElementById('rpc-fields').style.display = e.target.value === 'rpc' ? 'block' : 'none';
+    }));
+  </script>
+{% endblock %}

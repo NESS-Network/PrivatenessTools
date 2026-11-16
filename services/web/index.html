@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Node List</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+        }
+
+        h1 {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        /* Style the table container */
+        div.table-responsive { overflow-x: auto; max-height: 500px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid black;
+        }
+
+        th {
+            background-color: darkgray;
+            font-weight: bold;
+        }
+
+        tr:not(:last-child) { transition: background-color 0.3s ease; }
+
+        tr:hover { background-color: lightgray; }
+
+        tr:first-child {
+            position: sticky; top: 0; z-index: 1;
+            background-color: white;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Node List:</h1>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Node Name</th>
+                    <th>Node URL</th>
+                </tr>
+            </thead>
+            <tbody id="node-list"></tbody>
+        </table>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            {% for node in node_list %}
+              $('<tr>' +
+                  '<td>{{ node.node_name }}</td>' +
+                  '<td>{{ node.node_url }}</td>' +
+                  '</tr>').appendTo($('#node-list'));
+            {% endfor %}
+        });
+    </script>
+</body>
+</html>

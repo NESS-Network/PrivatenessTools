@@ -162,7 +162,11 @@ class UhePrng:
 		for i in range(0, len(arguments) - 1):
 			args.append(arguments[i])
 
-		self.hash(str(time.time()) + ' ' + ''.join(args) + str(random.random()))
+		self.hash(
+    str(time.time()) + ' ' +
+    ''.join(a.hex() if isinstance(a, bytes) else str(a) for a in args) +
+    str(random.random()))
+
 
 	def generate(self, rng: int, count: int):
 		result = []

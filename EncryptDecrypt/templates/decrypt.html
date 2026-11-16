@@ -1,0 +1,17 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2>Decrypt File</h2>
+  <form method="post" enctype="multipart/form-data">
+    <label>Algorithm:
+      <select name="algorithm">
+        <option value="salsa20">Salsa20</option>
+        <option value="aes">AES (CFB)</option>
+      </select>
+    </label><br>
+    <label>Key (hex):<input type="text" name="key" required></label><br>
+    <label>Nonce (hex, Salsa20):<input type="text" name="nonce"></label><br>
+    <label>IV (hex, AES):<input type="text" name="iv"></label><br>
+    <label>File:<input type="file" name="file" required></label><br>
+    <button type="submit">Decrypt</button>
+  </form>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2>Encrypt File</h2>
+  <form method="post" enctype="multipart/form-data">
+    <label>Algorithm:
+      <select name="algorithm">
+        <option value="salsa20">Salsa20</option>
+        <option value="aes">AES (CFB)</option>
+      </select>
+    </label><br>
+    <label>File:<input type="file" name="file" required></label><br>
+    <button type="submit">Encrypt</button>
+  </form>
+{% endblock %}
